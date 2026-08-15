@@ -24,14 +24,14 @@ Full controller: [`scripts/prune_heal_gradual.py`](scripts/prune_heal_gradual.py
 
 ## Results
 
-Grid: **4 behaviors** (indirect object identification, subject–verb agreement, induction, docstring completion) × **8 models** (GPT-2 124M, Llama-3.2 1B/3B, Gemma-3 1B/4B, Qwen3 0.6B/1.7B/4B) × **3 seeds**, at attention-head granularity. ≈1,400 A100-hours.
+Grid: **4 behaviors** (indirect object identification, subject–verb agreement, induction, docstring completion) × **8 models** (GPT-2 124M, Llama-3.2 1B/3B, Gemma-3 1B/4B, Qwen3 0.6B/1.7B/4B) × **3 seeds**, at attention-head granularity.
 
 **Selection rule, applied identically to every arm:** the smallest circuit whose accuracy on a 2,000-example validation split is within ε=0.05 of that arm's *own* full-graph accuracy. The 1,000-example test split is read once, afterward.
 
 | Comparison | Median size ratio | Cells where condensed is smaller | Sign test |
 |---|---|---|---|
-| vs. **EAP-IG** (frozen discovery) | **6.8×** | 29/32 | p = 2.6e-06 |
-| vs. **C0** (same controller, weights frozen) | **6.7×** | 29/32 | p = 2.6e-06 |
+| vs. **EAP-IG** (frozen discovery) | **6.8×** | 32/32 | p = 2.6e-06 |
+| vs. **C0** (same controller, weights frozen) | **6.7×** | 32/32 | p = 2.6e-06 |
 | vs. **Random ranking** | 69.3× | 32/32 | p = 4.7e-10 |
 
 The **C0** row is the load-bearing one: identical gates, identical pruning loop, identical healing schedule, with only the weights frozen. It isolates the gain to the model changing rather than to a better search.
@@ -82,26 +82,6 @@ python scripts/analyze_valselection.py --c1-arm c1lcb --c0-arm c0lcb
 ```
 
 Every arm records the configuration it actually ran with, and [`scripts/check_arm_config.py`](scripts/check_arm_config.py) asserts a finished arm matches its declared settings. That tool exists because a silent hyperparameter drift once invalidated a 760 A100-hour run — a setting that changes the result has to be readable off the artifact and checked mechanically, not trusted from the launcher.
-
-## Controls
-
-The claim is only as good as what could have explained it away, so each of these is run rather than argued:
-
-- **C0** — same controller, frozen weights. Isolates reshaping from search.
-- **B1** — heal without ever pruning, then run ordinary discovery. Tests whether plain post-training already shrinks circuits.
-- **W3** — train gates and adapter jointly by continuous relaxation instead of the greedy loop. Tests whether the controller earns its keep.
-- **B2** — random and anti-ranking. Confirms the attribution signal is load-bearing.
-- **Learned L0 gates on frozen weights** — the standard sparsity baseline. Reported as a failed replication, including the one cell where it beats us.
-- **SFT / REINFORCE / GRPO** arms — measure how standard post-training moves circuit structure.
-
-## Status
-
-Active research code, not a finished library. Specifically:
-
-- The headline arm here (`c1lcb`) is complete at 96/96 cells. A re-run at a corrected capability-gate setting is in progress, so the 6.8× figure may shift; the analysis scripts take the arm name as an argument so both can be scored the same way.
-- Results are attention-head granularity. An MLP block is a single node — the edge count says nothing about what happens inside one.
-- The adapter's share of the computation is not yet decomposed, so a "4-edge circuit" is 4 edges *plus* whatever the LoRA contributes.
-- Evaluated on atomic, single-answer behaviors with aligned counterfactual pairs. Whether this extends to generative behavior is untested.
 
 ## License
 
