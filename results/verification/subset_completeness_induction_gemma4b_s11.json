@@ -1,0 +1,28 @@
+{
+  "task": "induction",
+  "model": "gemma4b",
+  "seed": 11,
+  "k": 6,
+  "num_subsets": 64,
+  "subsets_evaluated": 64,
+  "wall_clock_s": 1307.91,
+  "eval_batches": 25,
+  "full_acc": 0.91,
+  "faithful_tol": 0.05,
+  "faithful_threshold": 0.86,
+  "feasible": true,
+  "exact_minimal_faithful_size": 6,
+  "circuit_is_minimal": true,
+  "padded_beyond_minimal": false,
+  "any_k_minus_1_faithful": false,
+  "best_acc_by_size": {
+    "0": 0.0,
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.32,
+    "4": 0.685,
+    "5": 0.685,
+    "6": 0.91
+  },
+  "n_faithful_subsets": 1
+}

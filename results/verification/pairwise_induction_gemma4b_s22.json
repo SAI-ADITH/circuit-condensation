@@ -1,0 +1,84 @@
+{
+  "task": "induction",
+  "model": "gemma4b",
+  "seed": 22,
+  "k": 4,
+  "n_pairs": 6,
+  "wall_clock_s": 120.25,
+  "eval_batches": 25,
+  "base_margin": 18.0899,
+  "feasible": true,
+  "inter_tol": 0.05,
+  "n_interacting_pairs": 5,
+  "frac_interacting": 0.8333,
+  "single_edge_deltas": {
+    "1": 6.4742,
+    "4793": 6.4742,
+    "10647": 2.08,
+    "10649": 4.3736
+  },
+  "top_interactions": [
+    {
+      "i": 1,
+      "j": 4793,
+      "d_i": 6.4742,
+      "d_j": 6.4742,
+      "d_ij": 6.4742,
+      "interaction": -6.4742,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 10649,
+      "d_i": 6.4742,
+      "d_j": 4.3736,
+      "d_ij": 6.4742,
+      "interaction": -4.3736,
+      "interacting": true
+    },
+    {
+      "i": 4793,
+      "j": 10649,
+      "d_i": 6.4742,
+      "d_j": 4.3736,
+      "d_ij": 6.4742,
+      "interaction": -4.3736,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 10647,
+      "d_i": 6.4742,
+      "d_j": 2.08,
+      "d_ij": 6.4742,
+      "interaction": -2.08,
+      "interacting": true
+    },
+    {
+      "i": 4793,
+      "j": 10647,
+      "d_i": 6.4742,
+      "d_j": 2.08,
+      "d_ij": 6.4742,
+      "interaction": -2.08,
+      "interacting": true
+    },
+    {
+      "i": 10647,
+      "j": 10649,
+      "d_i": 2.08,
+      "d_j": 4.3736,
+      "d_ij": 6.4742,
+      "interaction": 0.0206,
+      "interacting": false
+    }
+  ],
+  "cost_projection": {
+    "condensed_pairs": 6,
+    "frozen_matched_pairs": 44850,
+    "frozen_ratio_x": 7475.0,
+    "full_model_edges": 32000,
+    "full_model_pairs": 511984000,
+    "full_model_feasible": false
+  }
+}

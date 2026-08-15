@@ -1,0 +1,84 @@
+{
+  "task": "ioi",
+  "model": "gemma4b",
+  "seed": 22,
+  "k": 4,
+  "n_pairs": 6,
+  "wall_clock_s": 94.67,
+  "eval_batches": 25,
+  "base_margin": 5.9419,
+  "feasible": true,
+  "inter_tol": 0.05,
+  "n_interacting_pairs": 3,
+  "frac_interacting": 0.5,
+  "single_edge_deltas": {
+    "1": 5.7641,
+    "8139": 5.7641,
+    "10648": 0.0,
+    "10710": 5.7641
+  },
+  "top_interactions": [
+    {
+      "i": 1,
+      "j": 8139,
+      "d_i": 5.7641,
+      "d_j": 5.7641,
+      "d_ij": 5.7641,
+      "interaction": -5.7641,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 10710,
+      "d_i": 5.7641,
+      "d_j": 5.7641,
+      "d_ij": 5.7641,
+      "interaction": -5.7641,
+      "interacting": true
+    },
+    {
+      "i": 8139,
+      "j": 10710,
+      "d_i": 5.7641,
+      "d_j": 5.7641,
+      "d_ij": 5.7641,
+      "interaction": -5.7641,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 10648,
+      "d_i": 5.7641,
+      "d_j": 0.0,
+      "d_ij": 5.7641,
+      "interaction": 0.0,
+      "interacting": false
+    },
+    {
+      "i": 8139,
+      "j": 10648,
+      "d_i": 5.7641,
+      "d_j": 0.0,
+      "d_ij": 5.7641,
+      "interaction": 0.0,
+      "interacting": false
+    },
+    {
+      "i": 10648,
+      "j": 10710,
+      "d_i": 0.0,
+      "d_j": 5.7641,
+      "d_ij": 5.7641,
+      "interaction": 0.0,
+      "interacting": false
+    }
+  ],
+  "cost_projection": {
+    "condensed_pairs": 6,
+    "frozen_matched_pairs": 32640,
+    "frozen_ratio_x": 5440.0,
+    "full_model_edges": 32000,
+    "full_model_pairs": 511984000,
+    "full_model_feasible": false
+  }
+}

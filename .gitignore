@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# artifacts that are regenerated, never committed
+data/
+models/
+checkpoints/
+outputs/
+logs/
+
+# weights and bulk dumps
+*.pt
+*.pth
+*.bin
+*.safetensors
+*_knee_edges.jsonl
+
+# secrets
+.env
+.env.*
+*.key

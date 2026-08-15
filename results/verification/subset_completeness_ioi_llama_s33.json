@@ -1,0 +1,33 @@
+{
+  "task": "ioi",
+  "model": "llama",
+  "seed": 33,
+  "k": 11,
+  "num_subsets": 2048,
+  "subsets_evaluated": 2048,
+  "wall_clock_s": 27164.63,
+  "eval_batches": 25,
+  "full_acc": 0.975,
+  "faithful_tol": 0.05,
+  "faithful_threshold": 0.925,
+  "feasible": true,
+  "exact_minimal_faithful_size": 9,
+  "circuit_is_minimal": false,
+  "padded_beyond_minimal": true,
+  "any_k_minus_1_faithful": true,
+  "best_acc_by_size": {
+    "0": 0.49,
+    "1": 0.49,
+    "2": 0.49,
+    "3": 0.49,
+    "4": 0.49,
+    "5": 0.615,
+    "6": 0.71,
+    "7": 0.795,
+    "8": 0.885,
+    "9": 0.95,
+    "10": 0.97,
+    "11": 0.975
+  },
+  "n_faithful_subsets": 5
+}

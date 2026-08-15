@@ -1,0 +1,213 @@
+{
+  "task": "ioi",
+  "model": "llama3b",
+  "seed": 33,
+  "k": 7,
+  "n_pairs": 21,
+  "wall_clock_s": 627.54,
+  "eval_batches": 25,
+  "base_margin": 2.7844,
+  "feasible": true,
+  "inter_tol": 0.05,
+  "n_interacting_pairs": 20,
+  "frac_interacting": 0.9524,
+  "single_edge_deltas": {
+    "1": 2.7875,
+    "4263": 2.7875,
+    "5253": 2.7875,
+    "6003": 2.7875,
+    "14818": 2.7875,
+    "20232": 0.6177,
+    "20244": 2.1637
+  },
+  "top_interactions": [
+    {
+      "i": 1,
+      "j": 4263,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 5253,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 6003,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 14818,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 4263,
+      "j": 5253,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 4263,
+      "j": 6003,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 4263,
+      "j": 14818,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 5253,
+      "j": 6003,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 5253,
+      "j": 14818,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 6003,
+      "j": 14818,
+      "d_i": 2.7875,
+      "d_j": 2.7875,
+      "d_ij": 2.7875,
+      "interaction": -2.7875,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 20244,
+      "d_i": 2.7875,
+      "d_j": 2.1637,
+      "d_ij": 2.7875,
+      "interaction": -2.1637,
+      "interacting": true
+    },
+    {
+      "i": 4263,
+      "j": 20244,
+      "d_i": 2.7875,
+      "d_j": 2.1637,
+      "d_ij": 2.7875,
+      "interaction": -2.1637,
+      "interacting": true
+    },
+    {
+      "i": 5253,
+      "j": 20244,
+      "d_i": 2.7875,
+      "d_j": 2.1637,
+      "d_ij": 2.7875,
+      "interaction": -2.1637,
+      "interacting": true
+    },
+    {
+      "i": 6003,
+      "j": 20244,
+      "d_i": 2.7875,
+      "d_j": 2.1637,
+      "d_ij": 2.7875,
+      "interaction": -2.1637,
+      "interacting": true
+    },
+    {
+      "i": 14818,
+      "j": 20244,
+      "d_i": 2.7875,
+      "d_j": 2.1637,
+      "d_ij": 2.7875,
+      "interaction": -2.1637,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 20232,
+      "d_i": 2.7875,
+      "d_j": 0.6177,
+      "d_ij": 2.7875,
+      "interaction": -0.6177,
+      "interacting": true
+    },
+    {
+      "i": 4263,
+      "j": 20232,
+      "d_i": 2.7875,
+      "d_j": 0.6177,
+      "d_ij": 2.7875,
+      "interaction": -0.6177,
+      "interacting": true
+    },
+    {
+      "i": 5253,
+      "j": 20232,
+      "d_i": 2.7875,
+      "d_j": 0.6177,
+      "d_ij": 2.7875,
+      "interaction": -0.6177,
+      "interacting": true
+    },
+    {
+      "i": 6003,
+      "j": 20232,
+      "d_i": 2.7875,
+      "d_j": 0.6177,
+      "d_ij": 2.7875,
+      "interaction": -0.6177,
+      "interacting": true
+    },
+    {
+      "i": 14818,
+      "j": 20232,
+      "d_i": 2.7875,
+      "d_j": 0.6177,
+      "d_ij": 2.7875,
+      "interaction": -0.6177,
+      "interacting": true
+    }
+  ],
+  "cost_projection": {
+    "condensed_pairs": 21,
+    "frozen_matched_pairs": 32640,
+    "frozen_ratio_x": 1554.3,
+    "full_model_edges": 32000,
+    "full_model_pairs": 511984000,
+    "full_model_feasible": false
+  }
+}

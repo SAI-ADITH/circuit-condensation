@@ -1,0 +1,26 @@
+{
+  "task": "ioi",
+  "model": "gemma4b",
+  "seed": 11,
+  "k": 4,
+  "num_subsets": 16,
+  "subsets_evaluated": 16,
+  "wall_clock_s": 248.55,
+  "eval_batches": 25,
+  "full_acc": 0.98,
+  "faithful_tol": 0.05,
+  "faithful_threshold": 0.93,
+  "feasible": true,
+  "exact_minimal_faithful_size": 3,
+  "circuit_is_minimal": false,
+  "padded_beyond_minimal": true,
+  "any_k_minus_1_faithful": true,
+  "best_acc_by_size": {
+    "0": 0.52,
+    "1": 0.52,
+    "2": 0.52,
+    "3": 0.98,
+    "4": 0.98
+  },
+  "n_faithful_subsets": 2
+}

@@ -1,0 +1,534 @@
+{
+  "checkpoint": "checkpoints/doc_gemma1b_head_fresh",
+  "model": "models/gemma-3-1b-it",
+  "task": "doc",
+  "mode": "gradual",
+  "gamma_sweep": null,
+  "edit_eval": null,
+  "capability_probe": null,
+  "final_test": {
+    "circuit_acc": 0.966,
+    "faith": 0.1351,
+    "full_cap": 1.0
+  },
+  "start": "trained",
+  "schedule": [],
+  "rerank": "each",
+  "heal_steps_per_round": 500,
+  "heal_lr": 0.0001,
+  "heal_alpha": 1.0,
+  "heal_delta": 0.0,
+  "heal_cap_tol": 0.0,
+  "heal_acc_floor": 0.0,
+  "heal_delta_max": 1000.0,
+  "heal_dual_lr": 0.05,
+  "heal_circ_floor": 0.0,
+  "cap_gate": 1.0132,
+  "cap_abort": 2.0,
+  "cap_gate_calib": {
+    "gate": 1.0132,
+    "sigma_log": 0.00438,
+    "sigma_samples": [
+      0.00438
+    ],
+    "n_boot": 30,
+    "sigma_mult": 3.0
+  },
+  "retry_floor": 0.0,
+  "retry_max": 0,
+  "start_edges": 3537,
+  "m0_baseline": {
+    "circuit_acc": 1.0,
+    "faith": 0.0,
+    "full_cap": 1.0,
+    "panel": {
+      "normalized_entropy": 0.5853,
+      "participation_ratio": 32.8168,
+      "kurtosis": 761.7512
+    }
+  },
+  "m0_baseline_test": {
+    "circuit_acc": 1.0,
+    "faith": 0.0,
+    "full_cap": 1.0
+  },
+  "endpoint_valid_on_test": true,
+  "rounds": [
+    {
+      "target": 2476,
+      "realised_edges": 2476,
+      "circuit_acc": 1.0,
+      "faith": 0.007,
+      "full_cap": 1.0,
+      "heal_secs": 29.4,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5843,
+        "participation_ratio": 32.8394,
+        "kurtosis": 738.0011
+      }
+    },
+    {
+      "target": 1733,
+      "realised_edges": 1733,
+      "circuit_acc": 1.0,
+      "faith": 0.0285,
+      "full_cap": 1.0,
+      "cap_ratio": 0.8934,
+      "heal_secs": 28.4,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5805,
+        "participation_ratio": 32.3112,
+        "kurtosis": 724.2611
+      }
+    },
+    {
+      "target": 1213,
+      "realised_edges": 1213,
+      "circuit_acc": 1.0,
+      "faith": 0.0516,
+      "full_cap": 1.0,
+      "cap_ratio": 0.7931,
+      "heal_secs": 28.4,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5792,
+        "participation_ratio": 32.4267,
+        "kurtosis": 716.0935
+      }
+    },
+    {
+      "target": 849,
+      "realised_edges": 849,
+      "circuit_acc": 0.995,
+      "faith": 0.0543,
+      "full_cap": 1.0,
+      "cap_ratio": 0.7397,
+      "heal_secs": 29.3,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5665,
+        "participation_ratio": 31.521,
+        "kurtosis": 629.8373
+      }
+    },
+    {
+      "target": 594,
+      "realised_edges": 594,
+      "circuit_acc": 0.9975,
+      "faith": 0.0411,
+      "full_cap": 1.0,
+      "cap_ratio": 0.71,
+      "heal_secs": 29.0,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5446,
+        "participation_ratio": 28.3296,
+        "kurtosis": 707.4624
+      }
+    },
+    {
+      "target": 416,
+      "realised_edges": 416,
+      "circuit_acc": 0.9995,
+      "faith": 0.0327,
+      "full_cap": 0.9995,
+      "cap_ratio": 0.7184,
+      "heal_secs": 28.2,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5254,
+        "participation_ratio": 25.8191,
+        "kurtosis": 755.5529
+      }
+    },
+    {
+      "target": 291,
+      "realised_edges": 291,
+      "circuit_acc": 0.9985,
+      "faith": 0.0356,
+      "full_cap": 0.999,
+      "cap_ratio": 0.7154,
+      "heal_secs": 28.1,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.5115,
+        "participation_ratio": 23.4108,
+        "kurtosis": 941.8598
+      }
+    },
+    {
+      "target": 204,
+      "realised_edges": 204,
+      "circuit_acc": 0.999,
+      "faith": 0.0415,
+      "full_cap": 0.9985,
+      "cap_ratio": 0.7107,
+      "heal_secs": 28.2,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.4842,
+        "participation_ratio": 20.24,
+        "kurtosis": 1023.6503
+      }
+    },
+    {
+      "target": 143,
+      "realised_edges": 143,
+      "circuit_acc": 0.9985,
+      "faith": 0.0441,
+      "full_cap": 0.9985,
+      "cap_ratio": 0.7143,
+      "heal_secs": 28.3,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.472,
+        "participation_ratio": 19.9862,
+        "kurtosis": 927.2157
+      }
+    },
+    {
+      "target": 100,
+      "realised_edges": 100,
+      "circuit_acc": 0.9965,
+      "faith": 0.0532,
+      "full_cap": 0.9985,
+      "cap_ratio": 0.7018,
+      "heal_secs": 28.2,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.4524,
+        "participation_ratio": 17.3271,
+        "kurtosis": 1107.5319
+      }
+    },
+    {
+      "target": 70,
+      "realised_edges": 70,
+      "circuit_acc": 0.998,
+      "faith": 0.052,
+      "full_cap": 0.999,
+      "cap_ratio": 0.7021,
+      "heal_secs": 28.6,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.45,
+        "participation_ratio": 16.7317,
+        "kurtosis": 1227.5841
+      }
+    },
+    {
+      "target": 49,
+      "realised_edges": 49,
+      "circuit_acc": 0.999,
+      "faith": 0.0678,
+      "full_cap": 0.9975,
+      "cap_ratio": 0.7075,
+      "heal_secs": 28.1,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.4332,
+        "participation_ratio": 15.3211,
+        "kurtosis": 1296.2961
+      }
+    },
+    {
+      "target": 34,
+      "realised_edges": 34,
+      "circuit_acc": 0.9985,
+      "faith": 0.0642,
+      "full_cap": 0.996,
+      "cap_ratio": 0.7089,
+      "heal_secs": 28.4,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.3843,
+        "participation_ratio": 10.985,
+        "kurtosis": 1590.5546
+      }
+    },
+    {
+      "target": 24,
+      "realised_edges": 24,
+      "circuit_acc": 0.998,
+      "faith": 0.0661,
+      "full_cap": 0.9965,
+      "cap_ratio": 0.7145,
+      "heal_secs": 28.4,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.3559,
+        "participation_ratio": 9.9822,
+        "kurtosis": 1501.3348
+      }
+    },
+    {
+      "target": 17,
+      "realised_edges": 17,
+      "circuit_acc": 0.9995,
+      "faith": 0.0738,
+      "full_cap": 0.9995,
+      "cap_ratio": 0.717,
+      "heal_secs": 28.2,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.3221,
+        "participation_ratio": 8.3415,
+        "kurtosis": 1431.7573
+      }
+    },
+    {
+      "target": 12,
+      "realised_edges": 12,
+      "circuit_acc": 0.999,
+      "faith": 0.0754,
+      "full_cap": 1.0,
+      "cap_ratio": 0.7139,
+      "heal_secs": 28.3,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.2835,
+        "participation_ratio": 6.4012,
+        "kurtosis": 1690.062
+      }
+    },
+    {
+      "target": 8,
+      "realised_edges": 8,
+      "circuit_acc": 0.9995,
+      "faith": 0.0778,
+      "full_cap": 1.0,
+      "cap_ratio": 0.717,
+      "heal_secs": 28.1,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.2115,
+        "participation_ratio": 3.9511,
+        "kurtosis": 2041.3864
+      }
+    },
+    {
+      "target": 6,
+      "realised_edges": 6,
+      "circuit_acc": 0.9985,
+      "faith": 0.0737,
+      "full_cap": 1.0,
+      "cap_ratio": 0.7261,
+      "heal_secs": 27.8,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.1912,
+        "participation_ratio": 3.6045,
+        "kurtosis": 2067.2596
+      }
+    },
+    {
+      "target": 4,
+      "realised_edges": 4,
+      "circuit_acc": 0.9795,
+      "faith": 0.1272,
+      "full_cap": 1.0,
+      "cap_ratio": 0.7144,
+      "heal_secs": 28.1,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.1629,
+        "participation_ratio": 3.2191,
+        "kurtosis": 1670.2784
+      }
+    },
+    {
+      "target": 3,
+      "realised_edges": 3,
+      "circuit_acc": 0.9635,
+      "faith": 0.1362,
+      "full_cap": 1.0,
+      "cap_ratio": 0.7557,
+      "heal_secs": 28.3,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "search",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.3,
+      "panel": {
+        "normalized_entropy": 0.1323,
+        "participation_ratio": 2.4774,
+        "kurtosis": 2151.4446
+      }
+    },
+    {
+      "target": 2,
+      "realised_edges": 2,
+      "circuit_acc": 0.0295,
+      "faith": 0.3426,
+      "full_cap": 0.0325,
+      "cap_ratio": 1.8134,
+      "heal_secs": 139.2,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "overshoot",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.05,
+      "panel": {
+        "normalized_entropy": 0.4998,
+        "participation_ratio": 28.7789,
+        "kurtosis": 1048.348
+      }
+    },
+    {
+      "target": 1,
+      "realised_edges": 1,
+      "circuit_acc": 0.0,
+      "faith": 0.3725,
+      "full_cap": 0.8805,
+      "cap_ratio": 0.7535,
+      "heal_secs": 338.4,
+      "delta": 0.0,
+      "retries": 0,
+      "phase": "overshoot",
+      "knee": null,
+      "beats_knee": null,
+      "milestone": false,
+      "cut_frac": 0.05,
+      "panel": {
+        "normalized_entropy": 0.4826,
+        "participation_ratio": 24.5516,
+        "kurtosis": 1013.3524
+      }
+    }
+  ],
+  "best_faithful_edges": 3,
+  "best_faithful_acc": 0.9635,
+  "most_pruned_edges": 1,
+  "most_pruned_acc": 0.0,
+  "retry_stats": {
+    "acc_floor_rejects": 7,
+    "cap_gate_rejects": 0,
+    "fullcap_floor_rejects": 0,
+    "heal_aborts": 8,
+    "backtrack_halvings": 3,
+    "cliff_reheal_probes": 3,
+    "mixed_switch_probes": 0,
+    "mixed_switch_latched": 0,
+    "lazy_skips": 0
+  }
+}

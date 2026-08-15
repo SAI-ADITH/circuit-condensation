@@ -1,0 +1,239 @@
+{
+  "task": "agreement",
+  "model": "qwen3-4b",
+  "seed": 11,
+  "k": 33,
+  "n_pairs": 528,
+  "wall_clock_s": 28017.01,
+  "eval_batches": 25,
+  "base_margin": 0.6567,
+  "feasible": true,
+  "inter_tol": 0.05,
+  "n_interacting_pairs": 266,
+  "frac_interacting": 0.5038,
+  "single_edge_deltas": {
+    "0": 1.8346,
+    "24": 1.1899,
+    "30": 1.0795,
+    "698": 0.72,
+    "1029": 0.81,
+    "1161": 0.72,
+    "1426": 0.1115,
+    "1591": 1.057,
+    "16919": 0.2293,
+    "16952": 0.6597,
+    "17678": 0.0503,
+    "17711": 0.1814,
+    "18239": 0.6442,
+    "18999": 0.0762,
+    "24315": 0.0746,
+    "24843": 0.2865,
+    "27605": -0.2378,
+    "27719": -0.1598,
+    "32524": 0.3383,
+    "32638": 0.2394,
+    "33809": -0.1494,
+    "40085": 0.35,
+    "40346": 0.2843,
+    "43563": -0.0643,
+    "43584": 0.8119,
+    "43596": 0.0762,
+    "43698": 0.3343,
+    "43761": -0.2064,
+    "43845": 0.6703,
+    "43846": -0.224,
+    "43860": -0.1494,
+    "43926": 0.0,
+    "43959": 0.5712
+  },
+  "top_interactions": [
+    {
+      "i": 0,
+      "j": 24,
+      "d_i": 1.8346,
+      "d_j": 1.1899,
+      "d_ij": 1.8346,
+      "interaction": -1.1899,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 30,
+      "d_i": 1.8346,
+      "d_j": 1.0795,
+      "d_ij": 1.8346,
+      "interaction": -1.0795,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 1591,
+      "d_i": 1.8346,
+      "d_j": 1.057,
+      "d_ij": 1.8346,
+      "interaction": -1.057,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 43584,
+      "d_i": 1.8346,
+      "d_j": 0.8119,
+      "d_ij": 1.8346,
+      "interaction": -0.8119,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 1029,
+      "d_i": 1.8346,
+      "d_j": 0.81,
+      "d_ij": 1.8346,
+      "interaction": -0.81,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 698,
+      "d_i": 1.8346,
+      "d_j": 0.72,
+      "d_ij": 1.8346,
+      "interaction": -0.72,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 1161,
+      "d_i": 1.8346,
+      "d_j": 0.72,
+      "d_ij": 1.8346,
+      "interaction": -0.72,
+      "interacting": true
+    },
+    {
+      "i": 698,
+      "j": 1161,
+      "d_i": 0.72,
+      "d_j": 0.72,
+      "d_ij": 0.72,
+      "interaction": -0.72,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 43845,
+      "d_i": 1.8346,
+      "d_j": 0.6703,
+      "d_ij": 1.8346,
+      "interaction": -0.6703,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 16952,
+      "d_i": 1.8346,
+      "d_j": 0.6597,
+      "d_ij": 1.8346,
+      "interaction": -0.6597,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 18239,
+      "d_i": 1.8346,
+      "d_j": 0.6442,
+      "d_ij": 1.8346,
+      "interaction": -0.6442,
+      "interacting": true
+    },
+    {
+      "i": 24,
+      "j": 1591,
+      "d_i": 1.1899,
+      "d_j": 1.057,
+      "d_ij": 1.6043,
+      "interaction": -0.6426,
+      "interacting": true
+    },
+    {
+      "i": 24,
+      "j": 43584,
+      "d_i": 1.1899,
+      "d_j": 0.8119,
+      "d_ij": 1.4134,
+      "interaction": -0.5884,
+      "interacting": true
+    },
+    {
+      "i": 30,
+      "j": 1591,
+      "d_i": 1.0795,
+      "d_j": 1.057,
+      "d_ij": 1.5625,
+      "interaction": -0.574,
+      "interacting": true
+    },
+    {
+      "i": 0,
+      "j": 43959,
+      "d_i": 1.8346,
+      "d_j": 0.5712,
+      "d_ij": 1.8346,
+      "interaction": -0.5712,
+      "interacting": true
+    },
+    {
+      "i": 1591,
+      "j": 16952,
+      "d_i": 1.057,
+      "d_j": 0.6597,
+      "d_ij": 1.1725,
+      "interaction": -0.5442,
+      "interacting": true
+    },
+    {
+      "i": 30,
+      "j": 43584,
+      "d_i": 1.0795,
+      "d_j": 0.8119,
+      "d_ij": 1.3613,
+      "interaction": -0.5301,
+      "interacting": true
+    },
+    {
+      "i": 24,
+      "j": 1029,
+      "d_i": 1.1899,
+      "d_j": 0.81,
+      "d_ij": 1.5012,
+      "interaction": -0.4987,
+      "interacting": true
+    },
+    {
+      "i": 24,
+      "j": 43845,
+      "d_i": 1.1899,
+      "d_j": 0.6703,
+      "d_ij": 1.3637,
+      "interaction": -0.4965,
+      "interacting": true
+    },
+    {
+      "i": 18239,
+      "j": 43584,
+      "d_i": 0.6442,
+      "d_j": 0.8119,
+      "d_ij": 0.9612,
+      "interaction": -0.4949,
+      "interacting": true
+    }
+  ],
+  "cost_projection": {
+    "condensed_pairs": 528,
+    "frozen_matched_pairs": 19900,
+    "frozen_ratio_x": 37.7,
+    "full_model_edges": 32000,
+    "full_model_pairs": 511984000,
+    "full_model_feasible": false
+  }
+}

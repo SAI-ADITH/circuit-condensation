@@ -1,0 +1,223 @@
+{
+  "task": "agreement",
+  "model": "gemma4b",
+  "seed": 22,
+  "k": 17,
+  "n_pairs": 136,
+  "wall_clock_s": 2126.51,
+  "eval_batches": 25,
+  "base_margin": 0.424,
+  "feasible": true,
+  "inter_tol": 0.05,
+  "n_interacting_pairs": 105,
+  "frac_interacting": 0.7721,
+  "single_edge_deltas": {
+    "1": 1.1446,
+    "919": 0.6775,
+    "1093": 0.6775,
+    "1751": 0.236,
+    "2943": 0.3014,
+    "3033": 0.2542,
+    "3060": 0.236,
+    "3964": 0.8026,
+    "4766": 0.3855,
+    "4947": 0.3086,
+    "4973": 0.3875,
+    "4991": 0.3855,
+    "7550": 0.1335,
+    "9173": 0.2758,
+    "10651": 0.7371,
+    "10699": 0.1335,
+    "10726": 0.2758
+  },
+  "top_interactions": [
+    {
+      "i": 1,
+      "j": 3964,
+      "d_i": 1.1446,
+      "d_j": 0.8026,
+      "d_ij": 1.1446,
+      "interaction": -0.8026,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 10651,
+      "d_i": 1.1446,
+      "d_j": 0.7371,
+      "d_ij": 1.1446,
+      "interaction": -0.7371,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 919,
+      "d_i": 1.1446,
+      "d_j": 0.6775,
+      "d_ij": 1.1446,
+      "interaction": -0.6775,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 1093,
+      "d_i": 1.1446,
+      "d_j": 0.6775,
+      "d_ij": 1.1446,
+      "interaction": -0.6775,
+      "interacting": true
+    },
+    {
+      "i": 919,
+      "j": 1093,
+      "d_i": 0.6775,
+      "d_j": 0.6775,
+      "d_ij": 0.6775,
+      "interaction": -0.6775,
+      "interacting": true
+    },
+    {
+      "i": 3964,
+      "j": 10651,
+      "d_i": 0.8026,
+      "d_j": 0.7371,
+      "d_ij": 1.0161,
+      "interaction": -0.5236,
+      "interacting": true
+    },
+    {
+      "i": 919,
+      "j": 3964,
+      "d_i": 0.6775,
+      "d_j": 0.8026,
+      "d_ij": 1.027,
+      "interaction": -0.4531,
+      "interacting": true
+    },
+    {
+      "i": 1093,
+      "j": 3964,
+      "d_i": 0.6775,
+      "d_j": 0.8026,
+      "d_ij": 1.027,
+      "interaction": -0.4531,
+      "interacting": true
+    },
+    {
+      "i": 919,
+      "j": 10651,
+      "d_i": 0.6775,
+      "d_j": 0.7371,
+      "d_ij": 0.9805,
+      "interaction": -0.4341,
+      "interacting": true
+    },
+    {
+      "i": 1093,
+      "j": 10651,
+      "d_i": 0.6775,
+      "d_j": 0.7371,
+      "d_ij": 0.9805,
+      "interaction": -0.4341,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 4973,
+      "d_i": 1.1446,
+      "d_j": 0.3875,
+      "d_ij": 1.1446,
+      "interaction": -0.3875,
+      "interacting": true
+    },
+    {
+      "i": 3964,
+      "j": 4973,
+      "d_i": 0.8026,
+      "d_j": 0.3875,
+      "d_ij": 0.8026,
+      "interaction": -0.3875,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 4766,
+      "d_i": 1.1446,
+      "d_j": 0.3855,
+      "d_ij": 1.1446,
+      "interaction": -0.3855,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 4991,
+      "d_i": 1.1446,
+      "d_j": 0.3855,
+      "d_ij": 1.1446,
+      "interaction": -0.3855,
+      "interacting": true
+    },
+    {
+      "i": 3964,
+      "j": 4766,
+      "d_i": 0.8026,
+      "d_j": 0.3855,
+      "d_ij": 0.8026,
+      "interaction": -0.3855,
+      "interacting": true
+    },
+    {
+      "i": 3964,
+      "j": 4991,
+      "d_i": 0.8026,
+      "d_j": 0.3855,
+      "d_ij": 0.8026,
+      "interaction": -0.3855,
+      "interacting": true
+    },
+    {
+      "i": 4766,
+      "j": 4991,
+      "d_i": 0.3855,
+      "d_j": 0.3855,
+      "d_ij": 0.3855,
+      "interaction": -0.3855,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 4947,
+      "d_i": 1.1446,
+      "d_j": 0.3086,
+      "d_ij": 1.1446,
+      "interaction": -0.3086,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 2943,
+      "d_i": 1.1446,
+      "d_j": 0.3014,
+      "d_ij": 1.1446,
+      "interaction": -0.3014,
+      "interacting": true
+    },
+    {
+      "i": 1,
+      "j": 9173,
+      "d_i": 1.1446,
+      "d_j": 0.2758,
+      "d_ij": 1.1446,
+      "interaction": -0.2758,
+      "interacting": true
+    }
+  ],
+  "cost_projection": {
+    "condensed_pairs": 136,
+    "frozen_matched_pairs": 19900,
+    "frozen_ratio_x": 146.3,
+    "full_model_edges": 32000,
+    "full_model_pairs": 511984000,
+    "full_model_feasible": false
+  }
+}

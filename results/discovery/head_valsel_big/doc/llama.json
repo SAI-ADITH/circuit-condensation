@@ -1,0 +1,817 @@
+{
+ "task": "doc",
+ "model": "llama",
+ "n_edges": 8993,
+ "granularity": "head",
+ "seeds": [
+  11,
+  22,
+  33
+ ],
+ "budgets": [
+  8993,
+  6295,
+  4406,
+  3084,
+  2159,
+  1511,
+  1058,
+  741,
+  519,
+  363,
+  254,
+  178,
+  125,
+  88,
+  62,
+  43,
+  30,
+  21,
+  15,
+  10,
+  8
+ ],
+ "protocol": "rank=train select=val_big(2000); test accs reused from head_valsel",
+ "curves": {
+  "EAP": {
+   "11": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.997
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.9595
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.0735
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ],
+   "22": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 0.9995
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.999
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.9945
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.9585
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.1765
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ],
+   "33": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.994
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.945
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.4045
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ]
+  },
+  "EAP-IG": {
+   "11": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 0.9995
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.997
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.977
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.8925
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.897
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.8805
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.783
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.1065
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ],
+   "22": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.9965
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.9825
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.9135
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.9055
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.9085
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.5825
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0185
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ],
+   "33": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 0.9995
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.997
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.9825
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.9
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.914
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.89
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.718
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0455
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0005
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ]
+  },
+  "Random": {
+   "11": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 0.0075
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ],
+   "22": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 0.0075
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ],
+   "33": [
+    {
+     "edges": 8993,
+     "acc_val_big": 1.0
+    },
+    {
+     "edges": 6295,
+     "acc_val_big": 0.0075
+    },
+    {
+     "edges": 4406,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 3084,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 2159,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 1511,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 1058,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 741,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 519,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 363,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 254,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 178,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 125,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 88,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 62,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 43,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 30,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 21,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 15,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 10,
+     "acc_val_big": 0.0
+    },
+    {
+     "edges": 8,
+     "acc_val_big": 0.0
+    }
+   ]
+  }
+ }
+}

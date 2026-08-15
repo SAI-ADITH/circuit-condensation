@@ -1,0 +1,26 @@
+{
+  "task": "doc",
+  "model": "gemma4b",
+  "seed": 33,
+  "k": 4,
+  "num_subsets": 16,
+  "subsets_evaluated": 16,
+  "wall_clock_s": 326.51,
+  "eval_batches": 25,
+  "full_acc": 0.955,
+  "faithful_tol": 0.05,
+  "faithful_threshold": 0.905,
+  "feasible": true,
+  "exact_minimal_faithful_size": 3,
+  "circuit_is_minimal": false,
+  "padded_beyond_minimal": true,
+  "any_k_minus_1_faithful": true,
+  "best_acc_by_size": {
+    "0": 0.0,
+    "1": 0.0,
+    "2": 0.0,
+    "3": 0.955,
+    "4": 0.955
+  },
+  "n_faithful_subsets": 2
+}
