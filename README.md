@@ -1,116 +1,108 @@
 # Circuit Condensation
 
-**Post-training that makes a model's mechanism small enough to audit.**
+**Post-training that concentrates a behavior's causal circuit.**
 
-Mechanistic interpretability usually starts with a frozen model and asks: *what is the smallest subgraph — or circuit — responsible for a particular behavior?* Most methods then try to search harder for that circuit.
+Paper: [arXiv:2608.27254](https://arxiv.org/abs/2608.27254)
 
-This project takes the opposite approach: **instead of finding a small circuit, make one.**
-
-We run a short post-training procedure that reshapes an already-capable model so that the causal computation for a target behavior becomes concentrated in a much smaller subgraph — small enough that we can actually verify it exhaustively.
-
-Across a 96-run grid (4 behaviors × 8 models × 3 seeds), the resulting condensed circuits are a **median 6.8× smaller** than circuits recovered by frozen-model discovery on the same model using the same selection rule. **93/96** condensed endpoints also clear a sealed test-set threshold that is evaluated exactly once.
-
----
-
-## The method
-
-We attach LoRA adapters and a learnable on/off gate to every edge in the model's computation graph. A controller then repeatedly does three things:
-
-1. **Rank.** Score the surviving edges using attribution with EAP-IG — integrated gradients along the corrupted→clean path.
-
-2. **Cut.** Remove a margin-proportional fraction of the lowest-ranked edges. Importantly, turning an edge "off" does not zero its activation. Instead, that edge reads its activation from a corrupted counterfactual input, which helps keep the model in-distribution.
-
-3. **Heal.** Update the LoRA weights so the model can recover the target behavior using the remaining edges. Every healing round is subject to an accept/reject **capability gate**, implemented as a bootstrap-calibrated perplexity ratio on a held-out, off-target corpus. If a round damages general capability, it is rejected and rolled back.
-
-The process stops at the smallest circuit that still passes on held-out validation data.
-
-One important detail is that concentration is **measured, not optimized**. The training objective only uses task accuracy and the capability probe. The concentration metric itself is never part of the training signal.
-
-Full controller: [`scripts/prune_heal_gradual.py`](scripts/prune_heal_gradual.py). Graph and gating implementation: [`ilm/masking/`](ilm/masking/).
-
----
+Circuit discovery usually searches a frozen model for the smallest subgraph that carries a behavior. Circuit Condensation instead post-trains the model so that a much smaller subgraph suffices. The circuits it returns are small enough to verify exhaustively.
 
 ## Results
 
-The main grid covers **4 behaviors** — indirect object identification, subject–verb agreement, induction, and docstring completion — across **8 models**: GPT-2 124M, Llama-3.2 1B/3B, Gemma-3 1B/4B, and Qwen3 0.6B/1.7B/4B. Each setting is run with **3 seeds**, using attention-head granularity.
+Four behaviors (indirect object identification, subject–verb agreement, induction, docstring completion), eight models (GPT-2 small, Llama-3.2-1B/3B-Instruct, Gemma-3-1B/4B-it, Qwen3-0.6B/1.7B/4B), three seeds each: 32 task–model cells, 96 runs, attention-head granularity.
 
-Every arm uses the exact same selection rule:
+Every arm uses the same selection rule: the smallest circuit whose validation accuracy is within 0.05 of that arm's own full graph. A separate 1,000-example test split is read once, after selection.
 
-> Choose the smallest circuit whose accuracy on a 2,000-example validation split is within ε=0.05 of that arm's *own* full-graph accuracy.
+| Frozen arm vs. condensed circuit (C1) | Geometric-mean size ratio | Cells where C1 is smaller |
+| --- | ---: | ---: |
+| Random ranking | 103× | 32/32 |
+| EAP | 18.4× | 31/32 |
+| EAP-GP | 10.6× | 30/32 |
+| **EAP-IG** (strongest frozen baseline) | **8.1×** | **30/32** |
+| **C0** (same controller, weights frozen) | **7.4×** | **29/32** |
 
-Only after that selection is complete do we evaluate once on the separate 1,000-example test split.
+The C0 row isolates the effect of post-training: it runs the identical search without letting the weights move. 91 of 96 condensed endpoints also meet the tolerance on the sealed test split.
 
-| Comparison                                   | Median size ratio | Cells where condensed is smaller |   Sign test |
-| -------------------------------------------- | ----------------: | -------------------------------: | ----------: |
-| vs. **EAP-IG** (frozen discovery)            |          **6.8×** |                            32/32 | p = 2.6e-06 |
-| vs. **C0** (same controller, weights frozen) |          **6.7×** |                            32/32 | p = 2.6e-06 |
-| vs. **Random ranking**                       |             69.3× |                            32/32 | p = 4.7e-10 |
+Smaller circuits make exhaustive checks feasible. For the 19 circuits small enough to enumerate, every subset is tested (5,952 masked circuits): 11 are exactly minimal. All-pairs ablations (169,476 in total) show that no circuit's edges act independently; the matched frozen circuits would need a median 55× more pair ablations.
 
-The **C0** comparison is the most important one. It uses the same gates, the same pruning loop, and the same healing schedule, but keeps the model weights frozen. The only meaningful difference is whether the model itself is allowed to change. That lets us isolate the improvement from post-training rather than attributing it to a better search procedure.
+## Method
 
-### What do the smaller circuits actually buy us?
+The model is treated as a graph of residual-stream writers and readers. A closed edge passes the activation from a corrupted counterfactual prompt rather than zero (interchange ablation). Starting from the full graph and a fresh LoRA adapter, each round:
 
-The main benefit is **exhaustive verification**.
+1. **Ranks** the active edges with EAP-IG.
+2. **Prunes** the lowest-scoring 30% of active edges. A rejected proposal restores the last accepted state and halves the cut, down to 5%.
+3. **Heals** the LoRA adapter (base weights frozen) by distilling the original model's output distribution through the reduced graph.
+4. **Accepts** the round only if task accuracy stays within 0.05 of the full graph on held-out validation data *and* perplexity on a held-out mixed-domain probe stays within 1.05× of the original model.
 
-Once a circuit contains only a few dozen edges, it becomes feasible to enumerate every subset and every pair of edges. Across 62 circuits, we ran **169k pairwise edge ablations**.
+The procedure stops when no smaller proposal can be accepted. C1 is the smallest accepted circuit; C0 is the same controller with the weights frozen.
 
-Running the same exhaustive check on the corresponding frozen-model circuits would require **35–13,300× more ablations**.
-
-So the point is not simply that the condensed circuits score better on some interpretability metric. They make a form of verification computationally possible that is effectively infeasible for the frozen circuits at the same budget.
-
-### What does it cost?
-
-The resulting circuit is still defined relative to the counterfactual corruption used to construct it.
-
-When we evaluate against corruption families that were never used during training, the condensed circuits retain scores of **0.64–0.66**, compared with **0.45–0.48** for frozen circuits. But this is still substantially below the **0.96** performance they achieve on the corruption family they were trained with.
-
-So the concentration is not universal. It is distribution-specific, and the repository reports that limitation directly rather than hiding it.
-
----
-
-## Layout
-
-```text
-ilm/                    the library
-  masking/              edge graph, hard-concrete gates, disentangled residual stream
-  training/             co-training loop and losses
-  discovery/            frozen-model baselines (EAP, EAP-IG, ACDC, random)
-  eval/                 accuracy, faithfulness, concentration panel
-  data/                 per-behavior clean/corrupted pair construction
-scripts/                pipeline entry points (see below)
-slurm/                  cluster launchers for each arm
-results/
-  condensation/         per-cell endpoints for the condensed (C1) and frozen-weight (C0) arms
-  discovery/            frozen-baseline curves on the shared validation split
-  verification/         exhaustive subset and all-pairs interaction results
-  valselection_headline.json    the numbers in the table above
-```
-
-## Running it
+## Installation
 
 ```bash
-pip install -r requirements.txt
-
-# 1. build clean/corrupted pairs for a behavior
-python scripts/prepare_ioi.py --model gpt2
-
-# 2. attach fresh LoRA + gates (no pre-training; gates start open)
-python scripts/build_fresh_checkpoint.py --task ioi --model gpt2 --granularity head
-
-# 3. condense: rank -> cut -> heal, under the capability gate
-python scripts/prune_heal_gradual.py --task ioi --model gpt2 --adaptive --cap-gate 1.05
-
-# 4. the frozen-discovery comparison, on the same selection rule
-python scripts/run_discovery_valselect.py --task ioi --model gpt2
-
-# 5. rebuild the headline table
-python scripts/analyze_valselection.py --c1-arm c1lcb --c0-arm c0lcb
+git clone https://github.com/SAI-ADITH/circuit-condensation
+cd circuit-condensation
+pip install -e .
 ```
 
-Every arm records the configuration it actually ran with, and [`scripts/check_arm_config.py`](scripts/check_arm_config.py) checks that a completed arm matches its declared settings.
+Model checkpoints are read from `models/<name>/` (Hugging Face format). All paths are relative to the repository root; set `ILM_ROOT` to run from elsewhere.
 
-That check exists for a practical reason: a silent hyperparameter drift once invalidated a **760 A100-hour run**. Since then, any setting that can change the result has to be visible in the artifact and mechanically verified rather than trusted from the launcher.
+## Reproducing the paper
+
+Model names used throughout: `gpt2 llama llama3b gemma1b gemma4b qwen3-0.6b qwen3-1.7b qwen3-4b`, with each checkpoint in `models/<model>/`. Tasks: `ioi agreement induction doc`. The `slurm/` launchers assume one A100 per job; the grid launchers loop over the 4 tasks × 8 models × 3 seeds by array index.
+
+**1. Data.** The generators default to small splits, so pass the paper's sizes explicitly:
+
+```bash
+python scripts/prepare_ioi.py       --model-path models/<model> --out-dir data/ioi/<model>       --n-train 2000 --n-test 1000
+python scripts/prepare_agreement.py --model-path models/<model> --out-dir data/agreement/<model> --n-train 2000 --n-test 1000
+python scripts/prepare_docstring.py --model-path models/<model> --out-dir data/docstring/<model> --n-train 2000 --n-test 1000
+python scripts/prepare_induction.py --model      models/<model> --out-dir data/induction/<model> --n-train 2000 --n-test 1000 --repeats 4
+python scripts/prepare_bigval.py    # 2,000-example validation split, eval_big.jsonl, for every task and model
+```
+
+**2. Fresh checkpoint** (untrained LoRA plus edge gates, all open), once per task and model. `<prefix>` is `ioi`, `agr`, `ind` or `doc`:
+
+```bash
+sbatch --export=ALL,OUT=checkpoints/<prefix>_<model>_head_fresh,MODEL=models/<model>,TASK=<task>,GRAN=head \
+       slurm/build_fresh_checkpoint.slurm
+```
+
+**3–7. The grid and the analyses.**
+
+| Step | Command | Writes |
+| --- | --- | --- |
+| 3. Condensation, C1 | `sbatch slurm/regrid_gate.slurm` | `results/headgrid/c1gate/` |
+| 4. Frozen-weight arm, C0 | `sbatch slurm/regrid_lcb_c0.slurm` | `results/headgrid/c0lcb/` |
+| 5. Frozen discovery baselines | `sbatch slurm/discovery_valselect.slurm` | EAP, EAP-IG, EAP-GP and random curves |
+| 6. Headline table | `python scripts/analyze_valselection.py` | size ratios, cell wins, sign tests, cluster-bootstrap CIs |
+| 7. Verification | `sbatch slurm/payoff_c1gate.slurm` and `sbatch slurm/payoff_verify.slurm` | single-edge necessity, exhaustive subset minimality, all-pairs interactions |
+
+`analyze_valselection.py` defaults to the arms the paper reports (`c1gate`, `c0lcb`); override with `--c1-arm` / `--c0-arm`. Before step 7, `scripts/materialize_headsave.py` converts the controller's saved rounds into the checkpoint layout the verification scripts read. `slurm/payoff_v_cells.txt` lists the verification jobs, and `slurm/payoff_v_skip.txt` the pairwise jobs skipped for cost.
+
+## Repository layout
+
+```
+ilm/
+  data/         clean/corrupted prompt pairs for each task
+  masking/      head-level edge graph and gated residual stream
+  discovery/    frozen baselines: EAP, EAP-IG, EAP-GP, ACDC, random
+  eval/         restricted-choice accuracy and attribution measures
+  training/     LoRA setup and distillation loss
+scripts/        data preparation, the condensation controller (prune_heal_gradual.py),
+                frozen discovery, headline analysis, verification
+slurm/          launchers for the experiment grid
+```
+
+## Citation
+
+```bibtex
+@article{senthilkumar2026circuit,
+  title   = {Circuit Condensation: Post-Training that Concentrates a Behavior's Causal Circuit},
+  author  = {Senthil Kumar, Sai Adith},
+  journal = {arXiv preprint arXiv:2608.27254},
+  year    = {2026}
+}
+```
 
 ## License
 
-Apache 2.0.
+Apache 2.0. See [LICENSE](LICENSE).

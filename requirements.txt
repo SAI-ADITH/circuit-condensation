@@ -1,9 +1,5 @@
-# ILM pilot dependencies (versions match the shared `venv` conda env).
+# Results in the paper were produced with torch 2.8.0, transformers 5.7.0.dev0, peft 0.15.1.
+# Qwen3 and Gemma-3 checkpoints need transformers >= 4.51.
 torch>=2.5
-transformers>=4.45
+transformers>=4.51
 peft>=0.13
-datasets>=3.0
-accelerate>=1.0
-transformer_lens>=2.0
-numpy>=1.26
-matplotlib>=3.8

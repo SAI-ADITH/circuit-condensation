@@ -14,10 +14,11 @@ another arm's result, and nothing is selected on test.
 
 Inputs
   results/discovery/head_valsel/<task>/<model>.json   frozen curves w/ acc_val+acc_test
-  results/headgrid/c1lazy/seed{11,22,33}/<task>_<model>_knee.json   C1 endpoints
+  results/headgrid/<arm>/seed{11,22,33}/<task>_<model>_knee.json    C1 endpoints (--c1-arm)
 
 Writes results/valselection_headline.json and prints the paper-ready aggregates.
 """
+import os
 import json
 import statistics as st
 from itertools import combinations
@@ -27,8 +28,8 @@ ROOT = Path(__file__).resolve().parent.parent
 VALSEL = ROOT / "results/discovery/head_valsel"
 # Which controller arms to read. Overridden by --c1-arm/--c0-arm; kept as module
 # globals because c1_endpoint() is called from several places.
-ARM_C1 = "c1lazy"
-ARM_C0 = "c0wiki"
+ARM_C1 = os.environ.get("C1_ARM", "c1gate")
+ARM_C0 = os.environ.get("C0_ARM", "c0lcb")   # c0lcb is the C0 arm the paper reports
 SEEDS = (11, 22, 33)
 TOL = 0.05
 ARMS = ("EAP", "EAP-IG", "Random")

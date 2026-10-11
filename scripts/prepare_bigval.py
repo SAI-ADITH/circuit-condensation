@@ -19,9 +19,9 @@ takes nothing from training.
 
 Usage: python3 scripts/prepare_bigval.py [--n 2000] [--tasks ioi,agreement,induction,doc]
 """
+import os
 import argparse
 import json
-import os
 from pathlib import Path
 
 from ilm.training.setup import load_tokenizer

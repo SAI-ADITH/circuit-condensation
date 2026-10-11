@@ -18,9 +18,9 @@ data draw.
 
     python scripts/run_discovery_valselect.py --cells ioi/gpt2
 """
+import os
 import argparse
 import json
-import os
 from pathlib import Path
 
 import torch

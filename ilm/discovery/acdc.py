@@ -41,8 +41,18 @@ def _reader_rank(reader: str) -> int:
 
 
 def _cache_batches(model, dataset, collator, device, batch_size, rank_batches):
-    """Precompute, per batch: clean ids/mask, corrupted activations, and the FULL model's
-    clean-run log-probs (the KL reference ACDC prunes against)."""
+    """Precompute, per batch: clean ids/mask, corrupted activations, the FULL model's clean-run
+    log-probs (the KL reference ACDC prunes against), and the SUPERVISED-SLOT mask.
+
+    The supervised mask is the fix for a real divergence from the paper (2026-08-21). Conmy et al.
+    define H(x_i, x'_i) as "the output probability distribution of the subgraph" and D_KL as "the
+    average KL divergence over a set of DATAPOINTS" -- one distribution per example, at the slot
+    where the task is answered. We were averaging over every token position instead, which divides
+    each edge's measured effect by roughly the sequence length. That makes a nominal tau behave
+    like a tau ~20x larger, which is why our tau=7e-4 already cut GPT-2's IOI graph to 198 edges
+    while the paper's own IOI runs use tau=0.0575 and 0.00398. It also disagreed with EAP/EAP-IG in
+    this very repo, which attribute through make_logit_diff_metric restricted to the same slots.
+    """
     loader = DataLoader(dataset, batch_size=batch_size, collate_fn=collator)
     cached = []
     with torch.no_grad():
@@ -54,25 +64,37 @@ def _cache_batches(model, dataset, collator, device, batch_size, rank_batches):
             corrupted = model.capture_contributions(
                 batch["corr_ids"].to(device), batch["corr_mask"].to(device))
             full = model(clean_ids, clean_mask, masked=False)
-            cached.append((clean_ids, clean_mask, corrupted, F.log_softmax(full, dim=-1)))
+            # Answer slots, shifted the same way make_logit_diff_metric shifts them: logits[:, :-1]
+            # predicts labels[:, 1:]. Fall back to all real tokens only if a collator gives no
+            # labels, which no current task does.
+            if "labels" in batch:
+                sup = (batch["labels"].to(device)[:, 1:] != -100)
+            else:
+                sup = clean_mask[:, 1:].bool()
+            cached.append((clean_ids, clean_mask, corrupted,
+                           F.log_softmax(full[:, :-1, :], dim=-1), sup))
     return cached
 
 
 @torch.no_grad()
 def _circuit_kl(model, cached) -> float:
-    """Mean KL(full model || current masked circuit) over the cached batches/positions."""
+    """Mean KL(full model || current masked circuit) at the SUPERVISED ANSWER SLOTS.
+
+    Per Conmy et al.'s definition: one output distribution per datapoint, averaged over datapoints.
+    See _cache_batches for why averaging over all token positions was wrong."""
     tot, w = 0.0, 0.0
-    for clean_ids, clean_mask, corrupted, ref_lp in cached:
-        lp = F.log_softmax(model(clean_ids, clean_mask, corrupted=corrupted, masked=True), dim=-1)
+    for clean_ids, clean_mask, corrupted, ref_lp, sup in cached:
+        logits = model(clean_ids, clean_mask, corrupted=corrupted, masked=True)
+        lp = F.log_softmax(logits[:, :-1, :], dim=-1)
         kl = (ref_lp.exp() * (ref_lp - lp)).sum(dim=-1)
-        m = clean_mask.to(kl.dtype)
+        m = sup.to(kl.dtype)
         tot += float((kl * m).sum()); w += float(m.sum())
     return tot / max(w, 1.0)
 
 
 @torch.no_grad()
 def acdc_circuit(model, dataset, collator, device, tau: float, *,
-                 rank_batches: int = 2, batch_size: int = 8, max_edges: int = 3000):
+                 rank_batches: int = 2, batch_size: int = 8, max_edges: int = 3600):
     """Run one greedy ACDC pass at threshold ``tau``; return (kept_edge_set, final_kl)."""
     E = len(model.edges)
     if E > max_edges:

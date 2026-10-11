@@ -54,7 +54,7 @@ GATE_OPEN_LOGALPHA = 20.0  # sigmoid(20)~1 -> every edge ON (panel reads the FUL
 
 def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--mode", choices=["sft", "rl", "grpo"], required=True,
+    p.add_argument("--mode", choices=["sft", "rl", "grpo", "dpo"], required=True,
                    help="sft=cross-entropy; rl=plain REINFORCE (unstable, deprecated); "
                         "grpo=Group Relative Policy Optimization (Zhang's algorithm: group-normalized "
                         "advantages + KL leash to frozen reference — the STABLE RL).")
@@ -67,6 +67,8 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--eval-data", required=True)
     p.add_argument("--output-dir", required=True)
     p.add_argument("--num-steps", type=int, default=1000)
+    p.add_argument("--dpo-patience", type=int, default=20,
+                   help="stop DPO after this many consecutive saturated (fc-acc 1.0) steps")
     p.add_argument("--batch-size", type=int, default=8)
     p.add_argument("--lr", type=float, default=1e-4, help="LoRA learning rate (matches model_lr).")
     p.add_argument("--max-length", type=int, default=64)
@@ -136,6 +138,27 @@ def measure_panel(model, eval_ds, collator, device, batch_size, panel_batches) -
             acc[k] += panel[k]
         n += 1
     return {k: acc[k] / max(n, 1) for k in keys}
+
+
+def general_capability(model, tok, device, max_length, probe_path="data/probe_mixed.jsonl",
+                       eb=8, nb=16):
+    """Off-target perplexity ratio (adapter on / adapter off) on the SAME mixed probe corpus the
+    condensation controller gates on. Imported rather than reimplemented so the baseline arms and
+    C1 are measured with one ruler: C1 is capability-constrained (rounds are rejected above a 1.05
+    ratio) while these arms are not, so a size comparison is only fair if the cost is reported.
+    Returns the ratio (1.0 = untouched, >1 = degraded)."""
+    import json as _json
+    from scripts.prune_heal_gradual import capability_probe
+    def _text(line):
+        line = line.strip()
+        if not line.startswith("{"):
+            return line
+        r = _json.loads(line)
+        # probe_mixed.jsonl stores prompts under clean_prompt; tolerate text/prompt too.
+        return r.get("clean_prompt") or r.get("text") or r.get("prompt") or ""
+    prompts = [_text(l) for l in open(probe_path)]
+    prompts = [p for p in prompts if p]
+    return capability_probe(model, prompts, tok, device, max_length, eb=eb, nb=nb)
 
 
 def measure_capability(model, task, eval_ds, collator, tokenizer, device, batch_size, eval_batches,
@@ -220,11 +243,62 @@ def rl_step(model, tokenizer, prompts, golds, task, device, max_new_tokens, base
     return loss, rewards.mean().item()
 
 
+def dpo_step(model, batch, device, beta=0.1):
+    """DPO on the task's OWN forced-choice contrast, at the single answer slot.
+
+    Sampling-based RL is structurally starved on these tasks: the reward it can compute is free
+    generation over a 128k vocabulary (measured ~1% correct on agreement/Llama, and 0% for
+    REINFORCE) while the metric we report is a two-way choice the same model gets right 67% of
+    the time. DPO needs no sampling -- it widens the margin between the gold token and the SAME
+    foil the accuracy metric scores, so the thing optimised and the thing measured coincide.
+
+    Chosen token comes from `labels` (the answer slot), foil from the collator's `foil_ids`
+    (-1 where the task has no single-pair foil, e.g. induction/doc -- those rows are dropped).
+
+    loss = -log sigmoid( beta * [ (lp_c - lp_c_ref) - (lp_r - lp_r_ref) ] )
+    """
+    clean = batch["clean_ids"].to(device)
+    mask = batch["clean_mask"].to(device)
+    labels = batch["labels"].to(device)
+    foils = batch["foil_ids"].to(device)
+
+    ans_pos = (labels != -100).float().argmax(dim=1)        # first answer token
+    rows = torch.arange(clean.shape[0], device=device)
+    chosen = labels[rows, ans_pos]
+    keep = foils >= 0                                       # rows with a real foil
+    if keep.sum() == 0:
+        raise ValueError("no example in this batch has a foil id; DPO needs a forced-choice task")
+    rows, ans_pos, chosen, rejected = rows[keep], ans_pos[keep], chosen[keep], foils[keep]
+    pred_pos = (ans_pos - 1).clamp(min=0)                   # position that predicts the answer
+
+    def _lp(logits):
+        sl = logits[rows, pred_pos].float()                 # [B, vocab] at the answer slot
+        lse = torch.logsumexp(sl, dim=-1)
+        return (sl.gather(-1, chosen.unsqueeze(-1)).squeeze(-1) - lse,
+                sl.gather(-1, rejected.unsqueeze(-1)).squeeze(-1) - lse)
+
+    lp_c, lp_r = _lp(model.peft_model(input_ids=clean, attention_mask=mask).logits)
+    with torch.no_grad(), model.peft_model.disable_adapter():
+        rc, rr = _lp(model.peft_model(input_ids=clean, attention_mask=mask).logits)
+    margin = (lp_c - rc) - (lp_r - rr)
+    loss = -F.logsigmoid(beta * margin).mean()
+    return loss, (lp_c > lp_r).float().mean().item(), margin.mean().item()
+
+
 def _reward(task, text, ex):
     """Reward = the SAME correctness criterion the task's accuracy metric uses (a mismatched
     reward silently starves RL of signal — the doc/gt bug this fixes). ``ex`` is the dataset
     example dict; a bare gold string is accepted as a fallback."""
-    gold = ex.get("clean_answer") if isinstance(ex, dict) else ex
+    # Datasets name the gold differently per task: agreement/induction/docstring use "answer",
+    # IOI uses "io_name", GT/GSM8K carry "clean_answer". Reading only "clean_answer" silently
+    # yielded gold=None -> reward identically 0.0, i.e. RL with no signal that still "completes"
+    # and prints a diffusion verdict (caught 2026-08-27 on agreement/llama).
+    if isinstance(ex, dict):
+        gold = next((ex[key] for key in ("clean_answer", "answer", "io_name") if ex.get(key) is not None), None)
+        if gold is None:
+            raise KeyError(f"no gold answer field in example with keys {sorted(ex)}")
+    else:
+        gold = ex
     if task in ("ioi", "doc", "induction", "agreement"):
         # single-token word answer: correct iff the generation starts with it
         return float(text.strip().startswith(str(gold).strip()))
@@ -285,13 +359,29 @@ def grpo_step(model, tokenizer, prompts, golds, task, device, max_new_tokens,
         gen_pos[:, plen - 1:] = True
         gen_pos &= (tgt != pad)
 
+        # Gathered log-prob without materialising a [group, seq, vocab] float32 log_softmax.
+        # log p(y) = logit(y) - logsumexp(logits); logsumexp reduces over vocab in-kernel, so peak
+        # memory is O(group*seq) instead of O(group*seq*vocab). Same value, ~vocab-times smaller.
+        # (Llama-1B at group 8 asked for an 8 GiB single allocation and OOMed an 80 GB A100.)
+        def _tok_logp(lg, t, chunk=8):
+            # Chunked over rows: lg.float() on the whole [B*G, seq, vocab] tensor is what OOMs
+            # (64x256x128k fp32 = 7.8 GiB). Reducing a few rows at a time keeps peak memory at
+            # chunk/B*G of that while giving bit-identical values; autograd flows through cat.
+            lg = lg[:, :-1, :]
+            outs = []
+            for i in range(0, lg.shape[0], chunk):
+                sl, ts = lg[i:i + chunk].float(), t[i:i + chunk]
+                outs.append(sl.gather(-1, ts.unsqueeze(-1)).squeeze(-1)
+                            - torch.logsumexp(sl, dim=-1))
+            return torch.cat(outs, dim=0)
+
         # policy log-probs (with grad)
         logits = model.peft_model(input_ids=out, attention_mask=full_mask).logits
-        logp = F.log_softmax(logits[:, :-1, :].float(), dim=-1).gather(-1, tgt.unsqueeze(-1)).squeeze(-1)
+        logp = _tok_logp(logits, tgt)
         # reference log-probs (LoRA disabled, no grad)
         with torch.no_grad(), model.peft_model.disable_adapter():
             rlogits = model.peft_model(input_ids=out, attention_mask=full_mask).logits
-            rlogp = F.log_softmax(rlogits[:, :-1, :].float(), dim=-1).gather(-1, tgt.unsqueeze(-1)).squeeze(-1)
+            rlogp = _tok_logp(rlogits, tgt)
 
         log_ratio = rlogp - logp                       # log(pi_ref / pi)
         kl = torch.exp(log_ratio) - log_ratio - 1.0    # k3 estimator, >= 0
@@ -371,6 +461,40 @@ def main() -> None:
                     f.write(json.dumps({"step": step, "loss": loss.item(),
                                         "reward": reward, "kl": kl}) + "\n")
             step += 1
+    elif args.mode == "dpo":
+        # No sampling: iterate the collated loader and optimise the forced-choice margin.
+        # (DataLoader is imported at module scope; a function-local import here made the name
+        # local to main() for ALL branches, so the SFT path raised UnboundLocalError.)
+        loader = DataLoader(train_ds, batch_size=args.batch_size, shuffle=True,
+                            collate_fn=collator, drop_last=True)
+        it = iter(loader)
+        sat = 0
+        while step < args.num_steps:
+            try:
+                batch = next(it)
+            except StopIteration:
+                it = iter(loader); batch = next(it)
+            loss, fc_acc, margin = dpo_step(model, batch, device, beta=args.beta)
+            # Stop once the objective is solved. The canary hit forced-choice 1.000 by step 50
+            # and then drove the margin to +34 log-units by step 150 -- a degenerate model whose
+            # circuit size would not be comparable to a capability-gated C1. `--dpo-patience`
+            # consecutive saturated evals ends training instead.
+            sat = sat + 1 if fc_acc >= 0.999 else 0
+            if sat >= args.dpo_patience:
+                print(f"step {step:5d} | forced-choice saturated for {sat} steps "
+                      f"(margin {margin:+.2f}) -- early stop", flush=True)
+                break
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(lora_params, cfg.grad_clip)
+            optimizer.step()
+            if step % 50 == 0:
+                print(f"step {step:5d} | loss {loss.item():.4f} | forced-choice acc {fc_acc:.3f} "
+                      f"| margin {margin:+.3f} | {time.time()-t0:.0f}s", flush=True)
+                with open(log, "a") as f:
+                    f.write(json.dumps({"step": step, "loss": loss.item(),
+                                        "fc_acc": fc_acc, "margin": margin}) + "\n")
+            step += 1
     elif args.mode == "rl":
         # RL reads raw prompts+gold answers from the dataset (the collated batch has no
         # prompts); sample a fresh random minibatch of indices each step.
@@ -414,6 +538,13 @@ def main() -> None:
 
     # --- AFTER: panel + capability on the fine-tuned model ---
     panel_after = measure_panel(model, eval_ds, collator, device, args.batch_size, args.panel_batches)
+    gen_cap = None
+    try:
+        gen_cap = general_capability(model, tokenizer, device, args.max_length)
+        print(f"general-capability probe: ppl ratio {gen_cap['probe_ppl_ratio']} "
+              f"(orig {gen_cap['probe_ppl_orig']} -> adapted {gen_cap['probe_ppl_healed']})", flush=True)
+    except Exception as e:                       # never let the probe kill a finished run
+        print(f"general-capability probe failed: {e!r}", flush=True)
     cap_after = measure_capability(model, args.task, eval_ds, collator, tokenizer, device,
                                    args.batch_size, args.eval_batches, gt_generative=gt_generative)
     print(f"[after]  cap_acc {cap_after:.3f} | entropy {panel_after['normalized_entropy']:.3f} "
@@ -428,6 +559,10 @@ def main() -> None:
     report = {"mode": args.mode, "task": args.task, "granularity": args.graph_granularity,
               "model_path": args.model_path, "num_steps": args.num_steps, "lr": args.lr,
               "capability_before": cap_before, "capability_after": cap_after,
+              # Off-target general capability on the controller's own probe corpus. cap_before/
+              # after above are TASK accuracy; these are the general-LM cost of that gain, which
+              # is what makes a size comparison against capability-gated C1 fair.
+              "general_probe": gen_cap,
               "panel_before": panel_before, "panel_after": panel_after,
               "delta_entropy": d_ent, "delta_PR": d_pr, "delta_kurtosis": d_kurt,
               "direction": "DIFFUSE (Zhang)" if diffuse else "concentrate/mixed"}

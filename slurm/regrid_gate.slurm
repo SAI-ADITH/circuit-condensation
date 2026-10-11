@@ -7,7 +7,11 @@
 #SBATCH --gres=gpu:A100.80gb:1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64GB
-#SBATCH --time=1-00:00:00
+# 3 days, not 1. The 24h cap killed ioi/qwen3-4b seeds 22 and 33 outright (seed 11 survived at
+# 20:30, so the cap was cutting into the middle of the distribution, not clipping an outlier).
+# qwen3-4b is 43,993 edges and every remaining chunk is a 4B cell; the partition allows 5 days,
+# so a generous cap costs nothing and a tight one silently deletes cells from the grid.
+#SBATCH --time=3-00:00:00
 #SBATCH --output=outputs/regridg_%A_%a.out
 #SBATCH --array=0-95%8
 #
@@ -46,6 +50,15 @@ CKPT="checkpoints/${PREFIX[$TASK]}_${MODEL}_head_fresh"
 OUT="results/headgrid/c1gate/seed${SEED}/${TASK}_${MODEL}_knee.json"
 SAVE="checkpoints/c1gate/seed${SEED}/${PREFIX[$TASK]}_${MODEL}"
 mkdir -p "$(dirname "$OUT")" "$SAVE"
+
+# Skip a cell that already has a knee file. Re-submitting a range to recover a few dead cells
+# is the normal repair, and without this it silently re-runs every finished cell in that range
+# and overwrites results that downstream analyses have already been built on. Pass FORCE=1 to
+# deliberately recompute.
+if [ -s "$OUT" ] && [ "${FORCE:-0}" != "1" ]; then
+  echo "=== regrid task $I: $TASK/$MODEL seed $SEED -- $OUT exists, skipping (FORCE=1 to redo) ==="
+  exit 0
+fi
 
 echo "=== regrid task $I: $TASK/$MODEL seed $SEED -> $OUT ==="
 export CKPT TASK MODEL_NAME="$MODEL" SEED

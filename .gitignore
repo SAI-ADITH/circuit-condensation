@@ -4,19 +4,20 @@ __pycache__/
 venv/
 *.egg-info/
 
-# artifacts that are regenerated, never committed
-data/
-models/
-checkpoints/
-outputs/
-logs/
+# Regenerated artifacts. Anchored with a leading "/" so that `data/` does not also
+# swallow the `ilm/data/` package.
+/data/
+/models/
+/checkpoints/
+/outputs/
+/logs/
+/results/
 
 # weights and bulk dumps
 *.pt
 *.pth
 *.bin
 *.safetensors
-*_knee_edges.jsonl
 
 # secrets
 .env

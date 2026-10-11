@@ -3,10 +3,11 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ilm"
-version = "0.1.0"
-description = "Post-training for concentrated circuits in LLMs (Edge-Pruning co-training)."
+name = "circuit-condensation"
+version = "0.2.0"
+description = "Circuit Condensation: post-training that concentrates a behavior's causal circuit."
 requires-python = ">=3.10"
+dependencies = ["torch>=2.5", "transformers>=4.51", "peft>=0.13"]
 
 [tool.setuptools]
-packages = ["ilm", "ilm.data", "ilm.masking", "ilm.training", "ilm.eval"]
+packages = ["ilm", "ilm.data", "ilm.discovery", "ilm.eval", "ilm.masking", "ilm.training"]

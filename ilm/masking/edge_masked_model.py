@@ -503,6 +503,7 @@ class EdgeMaskedTransformer(nn.Module):
         metric_fn,
         n_steps: int = 5,
         path_delta: bool = False,
+        ig_path: str = "gate",
     ) -> torch.Tensor:
         """EAP-IG: integrated-gradients version of ``edge_attributions`` (Hanna et al./
         Marks et al.-style; see EAP-IG / EAP-GP literature, e.g. arxiv 2502.06852).
@@ -529,12 +530,32 @@ class EdgeMaskedTransformer(nn.Module):
         instead of 1 -- fine for a periodic ranking step, not meant for the training loop.
         """
         real_gates = self.gate.sample(self.training).detach()
+        if ig_path not in ("gate", "embed"):
+            raise ValueError(f"ig_path must be 'gate' or 'embed', got {ig_path!r}")
+        # ig_path="embed" reproduces Hanna et al. 2024 (arXiv 2403.17806) LITERALLY: their Eq. 3
+        # integrates along "the straight-line path from s' to s", where s and s' are the token
+        # EMBEDDING sequences, with the graph left alone. ig_path="gate" (our default) instead
+        # interpolates the edge gates, walking from the fully corrupted graph to the current one.
+        # Both are fixed-delta/varying-gradient integrated gradients and both connect corrupted
+        # behaviour to clean; they differ in WHICH path. See the audit note in
+        # plans/2026-08-21-baseline-fidelity-audit.md for why the gate path is the default here
+        # and why the embed path exists (it is the check that our baseline is not a weak one).
+        emb_corr = None
+        if ig_path == "embed":
+            if corrupted is None or "embed" not in corrupted:
+                # Loud, not silent: falling back to the gate path here would report a number
+                # labelled "Hanna et al." that was produced by a different algorithm.
+                raise ValueError("ig_path='embed' needs corrupted['embed'] from "
+                                 "capture_contributions; got none.")
+            emb_corr = corrupted["embed"].detach()
 
         def forward_at(alpha: float, need_grad: bool):
-            gates_a = real_gates * alpha
+            gates_a = real_gates * alpha if ig_path == "gate" else real_gates
             clean: dict[str, torch.Tensor] = {}
             reader_inputs: dict[str, torch.Tensor] = {}
             embed = self._adapter.embed(input_ids)
+            if ig_path == "embed" and emb_corr is not None:
+                embed = emb_corr + alpha * (embed - emb_corr)   # Hanna Eq. 3: z' + (k/m)(z - z')
             embed = embed.detach().requires_grad_(need_grad)
             clean["embed"] = embed
             pos_emb = self._position_embeddings(embed)
@@ -641,6 +662,7 @@ class EdgeMaskedTransformer(nn.Module):
         logits_corr = logits_corr.detach()
 
         coef = torch.ones(E, device=input_ids.device, requires_grad=True)  # gamma(0) = clean
+        coef_start = coef.detach().clone()
         scores_sum = torch.zeros(E)
         for _ in range(n_steps):
             clean_j, reader_inputs_j, logits_j = forward_coef(coef, need_grad=True)
@@ -662,4 +684,16 @@ class EdgeMaskedTransformer(nn.Module):
             with torch.no_grad():
                 coef = (coef - g_coef / (g_coef.norm() + eps)).clamp(0.0, 1.0)
             coef = coef.detach().requires_grad_(True)
+        # How far GradPath actually travelled. The paper's step is normalised to unit L2 in RAW
+        # ACTIVATION space; we take it in coefficient space, where the reachable set has diameter
+        # sqrt(E), so k unit steps can only move a bounded distance. If this displacement is
+        # ~0 the adaptive path never left the clean point and EAP-GP has degenerated into EAP
+        # evaluated at alpha=1 -- which is the saturation failure it exists to fix. Recorded so
+        # the claim "we ran EAP-GP" is checkable rather than assumed.
+        with torch.no_grad():
+            d = (coef.detach() - coef_start)
+            self._gp_last_displacement = {
+                "l2": float(d.norm()), "max_abs": float(d.abs().max()),
+                "frac_moved": float((d.abs() > 1e-3).float().mean()), "n_edges": E,
+                "reachable_diameter": float(E) ** 0.5}
         return (scores_sum / n_steps).abs()
