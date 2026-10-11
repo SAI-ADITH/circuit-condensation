@@ -44,14 +44,13 @@ def _cache_batches(model, dataset, collator, device, batch_size, rank_batches):
     """Precompute, per batch: clean ids/mask, corrupted activations, the FULL model's clean-run
     log-probs (the KL reference ACDC prunes against), and the SUPERVISED-SLOT mask.
 
-    The supervised mask is the fix for a real divergence from the paper (2026-08-21). Conmy et al.
+    The supervised mask keeps this faithful to the ACDC paper. Conmy et al.
     define H(x_i, x'_i) as "the output probability distribution of the subgraph" and D_KL as "the
     average KL divergence over a set of DATAPOINTS" -- one distribution per example, at the slot
-    where the task is answered. We were averaging over every token position instead, which divides
-    each edge's measured effect by roughly the sequence length. That makes a nominal tau behave
-    like a tau ~20x larger, which is why our tau=7e-4 already cut GPT-2's IOI graph to 198 edges
-    while the paper's own IOI runs use tau=0.0575 and 0.00398. It also disagreed with EAP/EAP-IG in
-    this very repo, which attribute through make_logit_diff_metric restricted to the same slots.
+    where the task is answered. Averaging over every token position instead would divide
+    each edge's measured effect by roughly the sequence length, making a nominal tau behave
+    like a tau ~20x larger (the paper's own IOI runs use tau=0.0575 and 0.00398). It would also
+    disagree with EAP/EAP-IG in this repo, which attribute through make_logit_diff_metric restricted to the same slots.
     """
     loader = DataLoader(dataset, batch_size=batch_size, collate_fn=collator)
     cached = []

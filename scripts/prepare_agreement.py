@@ -8,7 +8,7 @@ Marvin & Linzen 2018 / Lakretz 2019). Splits are disjoint BY CONSTRUCTION: each 
 split is built excluding every clean_prompt already used by an earlier one (mirrors
 scripts/prepare_induction.py).
 
-Data layout (2026-07-03): data/agreement/<model>/{train,eval,test}.jsonl -- pass
+Data layout: data/agreement/<model>/{train,eval,test}.jsonl -- pass
 --out-dir data/agreement/<model> (default: data/agreement/gpt2).
 
     python scripts/prepare_agreement.py --model-path models/gpt2 \

@@ -12,7 +12,7 @@ GREATER than 42. The behavior = "respect the > constraint."
 **Why it fits our rig:** the answer is a *single token* (a 2-digit number like
 "98"), so — exactly as for IOI — teacher-forced argmax == real accuracy, no
 free-generation gap, no compounding error. That makes it the ideal second
-"atomic" rung in the behavior-breadth ladder (see the 2026-06-27 explore doc).
+"atomic" task alongside IOI.
 
 **Corruption (Hanna's "01" scheme):** replace the start year's last two digits
 with "01", i.e. "...from the year 1701 to the year 17". This makes almost every
@@ -111,7 +111,7 @@ def build_samples(tokenizer, n: int, seed: int = 0,
             continue
         corrupted = clean.replace(f"{century}{start_yy:02d}",
                                   f"{century}{CORRUPT_YY:02d}", 1)
-        # Hard alignment requirement (2026-07-03, tightened): clean and corrupted must
+        # Hard alignment requirement: clean and corrupted must
         # tokenize to the same length AND differ at EXACTLY ONE token position -- not just
         # "same total length", which a BPE tokenizer can satisfy while splitting the
         # century/YY boundary differently than expected (confirmed empirically misaligned

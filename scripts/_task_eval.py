@@ -1,4 +1,4 @@
-"""Shared helpers for the overnight usefulness batch (2026-07-10): cell resolution, dataset
+"""Shared helpers for the verification scripts: cell resolution, dataset
 construction, per-task accuracy dispatch, contrastive logit margins, and circuit loading.
 
 Conventions (mirroring the repo):
@@ -39,9 +39,9 @@ TASK_DIR = {"ioi": "ioi", "agreement": "agreement", "induction": "induction", "d
 MAXLEN = {"ioi": 64, "agreement": 64, "induction": 64, "doc": 96}
 
 
-# Env overrides (2026-07-26) so the verification scripts (necessity/minimality) can target the
-# c1lazy HEAD grid without editing their logic:
-#   COND_CKPT_ROOT  e.g. checkpoints/headsave/c1lazy/seed11 -> condensed = {root}/{PREFIX}_{model}
+# Env overrides so the verification scripts (necessity/minimality) can target a given arm and
+# granularity without editing their logic:
+#   COND_CKPT_ROOT  e.g. checkpoints/headsave/c1gate/seed11 -> condensed = {root}/{PREFIX}_{model}
 #   FRESH_SUFFIX    default "_fresh"; set "_head_fresh" for the head grid's frozen-arm base
 #   GRAN            default "block"; set "head" for the head grid
 def fresh_ckpt(task, model) -> Path:

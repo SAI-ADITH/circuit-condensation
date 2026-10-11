@@ -10,8 +10,8 @@ condensed model from
 
     checkpoints/headsave/<arm>/seed<N>/<prefix>_<model>/{lora_healed, gates_healed.pt, kept_edges.json}
 
-That layout was written by prune_heal_gradual.py's `--save-healed` path, which the
-c1lazy grid used. The c1gate/c1lcb regrids instead use `SAVE_ROUNDS`, which writes a
+That layout is written by prune_heal_gradual.py's `--save-healed` path. The C1 grid
+(slurm/regrid_gate.slurm) instead uses `SAVE_ROUNDS`, which writes a
 rolling window of the last few accepted rounds to
 
     checkpoints/<arm>/seed<N>/<prefix>_<model>/r<NNN>_e<edges>/{lora, gates.pt, meta.json}
@@ -21,14 +21,15 @@ downstream scripts' file handling, this translates the round window into the lay
 they already expect. Symlinks, not copies: the c1gate round window is ~27 GB.
 
 The kept set is re-derived from the gate parameters rather than trusted from a
-filename. That derivation is checked against c1lazy's own stored kept_edges.json by
-`--verify-only`, which is the control for this whole script: if the materialiser and
+filename. That derivation is checked against a kept_edges.json written by the controller
+itself (`--save-healed`) by `--verify-only`, which is the control for this whole script: if the materialiser and
 the controller disagree about what "the circuit" is, every downstream number is wrong.
 
 Usage
 -----
     python scripts/materialize_headsave.py --arm c1gate
-    python scripts/materialize_headsave.py --arm c1lazy --verify-only   # the control
+    python scripts/materialize_headsave.py --arm <arm> --verify-only    # the control, on an
+                                                                        # arm run with --save-healed
 """
 import argparse
 import json
@@ -42,7 +43,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Hard-concrete constants, mirrored from ilm/masking/hard_concrete.py. Duplicated on
 # purpose: this script must be able to read an archived checkpoint even if the module's
 # defaults are ever changed, and a silent constant drift would silently redefine every
-# saved circuit. If these ever diverge, --verify-only fails loudly on the c1lazy grid.
+# saved circuit. If these ever diverge, --verify-only fails loudly.
 GAMMA, ZETA = -0.1, 1.1
 THRESHOLD = 0.5
 
@@ -117,7 +118,7 @@ def main():
     ap.add_argument("--verify-only", action="store_true",
                     help="do not write; instead check the derived kept set against an "
                          "existing headsave/<arm> tree. This is the control: run it on "
-                         "c1lazy, whose kept_edges.json the controller itself wrote.")
+                         "an arm whose kept_edges.json the controller itself wrote.")
     a = ap.parse_args()
     seeds = [int(s) for s in a.seeds.split(",")]
 

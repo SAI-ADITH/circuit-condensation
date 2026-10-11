@@ -11,11 +11,11 @@
 #SBATCH --output=outputs/%x-%j.out
 #SBATCH --error=outputs/%x-%j.err
 
-# Build a fresh (never-trained) C1 starting checkpoint -- no Stage 1 at all (2026-07-03
-# pipeline change, see scripts/build_fresh_checkpoint.py's docstring for why). Feed the
+# Build a fresh (never-trained) C1 starting checkpoint -- no Stage 1 at all (see
+# scripts/build_fresh_checkpoint.py's docstring for why). Feed the
 # result straight into slurm/prune_heal_gradual.slurm (--adaptive) to get the real C1
 # knee curve and smallest-faithful circuit. Required env: OUT MODEL TASK. Optional:
-# GRAN (default block; head is GPT-2-only) MAX_LENGTH (default 64).
+# GRAN (default block; the paper uses head) MAX_LENGTH (default 64).
 #   sbatch --export=ALL,OUT=checkpoints/ioi_fresh,MODEL=models/gpt2,TASK=ioi,GRAN=head,MAX_LENGTH=64 \
 #     slurm/build_fresh_checkpoint.slurm
 set -euo pipefail

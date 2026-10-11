@@ -11,13 +11,11 @@
 #SBATCH --output=outputs/regridc0_%A_%a.out
 #SBATCH --array=0-95%8
 #
-# C0 re-run under the identical selection fix as regrid_lcb.slurm (2026-08-06).
+# C0 grid under the identical selection rule as regrid_gate.slurm (C1).
 #
-# Required, not optional: C0 is the ablation that isolates reshaping from search, so it must
-# be selected by the same rule as C1 or the comparison stops being apples-to-apples. It is
-# also the arm that needs it most -- under the old point-estimate rule only 43 of 96 C0
-# endpoints re-cleared the tolerance on the sealed split, the worst of any arm, which is the
-# expected signature of an adaptive controller over-fitting a 200-example split.
+# C0 is the ablation that isolates reshaping from search, so it must be selected by the same
+# rule as C1 or the comparison stops being apples-to-apples. A point-estimate rule on a
+# 200-example split lets an adaptive controller over-fit that split.
 #
 # Identical to the C1 arm in every respect except FREEZE_WEIGHTS=1: same fresh checkpoint,
 # same ranking, same cut schedule, same capability gate, same 2000-example validation split,

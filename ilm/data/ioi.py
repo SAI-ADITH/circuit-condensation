@@ -82,7 +82,7 @@ def build_samples(tokenizer, n: int, seed: int = 0,
 
     ``templates`` restricts generation to a subset of ``TEMPLATES`` (the lexical sentence
     frames), used to build disjoint template FAMILIES for the transfer experiment
-    (plans/2026-07-10-template-transfer.md). Default ``None`` = the full 5-frame mix.
+    Default ``None`` = the full 5-frame mix.
 
     ``structure`` forces the first-clause order: ``"abba"`` = IO first ([IO] and [S] ... [S]),
     ``"baba"`` = S first ([S] and [IO] ... [S]). Default ``None`` = 50/50 mix. Used to build the

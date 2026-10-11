@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verification experiment V1 (plan 2026-07-29-verification-cost-experiments): EXHAUSTIVE subset
+"""Verification experiment V1: EXHAUSTIVE subset
 completeness/minimality. On a small condensed circuit (k kept edges) we enumerate ALL 2^k edge
 subsets, run an exact masked forward for each, and record the accuracy of every subset. This is the
 un-approximated version of Wang et al. 2023's completeness test -- which they call "computationally

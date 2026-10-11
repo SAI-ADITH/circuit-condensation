@@ -1,26 +1,24 @@
 #!/usr/bin/env python3
-"""The Zhang same-axis contrast: ordinary task fine-tuning, then measure concentration.
+"""Ordinary task fine-tuning, then measure concentration.
 
-Our method (C1) reshapes a model so a *tiny* circuit suffices. Zhang-2026's claim is
-the opposite for plain RL: optimizing the task makes the circuit MORE diffuse. To put
-our headline sentence on solid ground we must run that comparison on our OWN setup:
-take the same model+task, fine-tune it the ordinary way (no gates, no sparsity — just
+Our method (C1) reshapes a model so a *tiny* circuit suffices. Zhang et al. (2025) report
+the opposite for RL fine-tuning: optimizing the task makes the circuit MORE diffuse. This
+runs that comparison on our own setup: take the same model+task, fine-tune it the
+ordinary way (no gates, no sparsity — just
 "get the task right"), and read our EAP concentration panel before vs after.
 
 Two modes of "ordinary fine-tuning":
   --mode sft : supervised fine-tune. Cross-entropy on the gold answer tokens. The cheap
-               proxy for "task-optimizing fine-tuning" (Step E0, the kill-test).
+               proxy for "task-optimizing fine-tuning".
   --mode rl  : REINFORCE. Sample a generation, reward = answer correct (1/0), push up the
-               log-prob of rewarded samples. The actual thing Zhang studies (Step E1).
+               log-prob of rewarded samples.
 
 Crucially the EAP panel is measured with **all gates open = the full model's circuit**,
-so the only thing that changed between before/after is the WEIGHTS — exactly Zhang's axis
+so the only thing that changed between before/after is the WEIGHTS — the same axis as Zhang et al.
 (does task fine-tuning diffuse the full model's circuit?). Gates never train here; this is
 a normal LoRA fine-tune, the disentangled wrapper is reused only to run the panel.
 
-PASS for E0: SFT does NOT concentrate (entropy/PR flat-or-up). If even gentle SFT already
-concentrates, the "task fine-tuning diffuses" premise is false on our setup -> stop before
-building RL. PASS for E1: RL diffuses (entropy up / PR up) while our C1 concentrates (down).
+Entropy/PR up = more diffuse; down = more concentrated.
 
     python scripts/task_finetune.py --mode sft --task ioi --graph-granularity head \
         --model-path .../models/gpt2 --data .../ioi_train.jsonl --eval-data .../ioi_eval.jsonl \
@@ -56,7 +54,7 @@ def parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--mode", choices=["sft", "rl", "grpo", "dpo"], required=True,
                    help="sft=cross-entropy; rl=plain REINFORCE (unstable, deprecated); "
-                        "grpo=Group Relative Policy Optimization (Zhang's algorithm: group-normalized "
+                        "grpo=Group Relative Policy Optimization (group-normalized "
                         "advantages + KL leash to frozen reference — the STABLE RL).")
     p.add_argument("--task", choices=["ioi", "gsm8k", "gt", "doc", "induction", "agreement"], required=True)
     p.add_argument("--gt-mode", default="generative", choices=["generative", "token"],
@@ -167,8 +165,7 @@ def measure_capability(model, task, eval_ds, collator, tokenizer, device, batch_
     model.eval()
     # Per-task forced-choice dispatch, mirroring prune_heal_gradual.measure() EXACTLY so the
     # 'diffuse' arm's capability is on the same ruler as the condensation grid's. The old
-    # blanket ioi_accuracy (argmax-over-vocab) read agreement ~0.00 -- see eval-method-overhaul
-    # memory -- which invalidated every agreement diffusion cell.
+    # blanket ioi_accuracy (argmax-over-vocab) reads agreement ~0.00.
     if task == "agreement":
         return circuit_eval.agreement_accuracy(model, eval_ds, collator, device,
                                                masked=False, batch_size=batch_size, num_batches=eval_batches)
@@ -292,7 +289,7 @@ def _reward(task, text, ex):
     # Datasets name the gold differently per task: agreement/induction/docstring use "answer",
     # IOI uses "io_name", GT/GSM8K carry "clean_answer". Reading only "clean_answer" silently
     # yielded gold=None -> reward identically 0.0, i.e. RL with no signal that still "completes"
-    # and prints a diffusion verdict (caught 2026-08-27 on agreement/llama).
+    # and prints a diffusion verdict.
     if isinstance(ex, dict):
         gold = next((ex[key] for key in ("clean_answer", "answer", "io_name") if ex.get(key) is not None), None)
         if gold is None:
@@ -323,7 +320,7 @@ def _reward(task, text, ex):
 
 def grpo_step(model, tokenizer, prompts, golds, task, device, max_new_tokens,
               group_size, beta, temperature):
-    """One GRPO step (Group Relative Policy Optimization — Zhang/DeepSeek's algorithm).
+    """One GRPO step (Group Relative Policy Optimization, Shao et al. 2024).
 
     For each prompt sample ``group_size`` completions; reward each; the advantage is the
     reward Z-SCORED WITHIN ITS GROUP (no value network needed). The loss pushes up the
@@ -439,7 +436,7 @@ def main() -> None:
     model.train()
     baseline, step, t0 = 0.0, 0, time.time()
     if args.mode == "grpo":
-        # GRPO (Zhang/DeepSeek): `--batch-size` prompts per step, each sampled `--group-size`
+        # GRPO: `--batch-size` prompts per step, each sampled `--group-size`
         # times; group-normalized advantage + KL leash to the frozen reference. Lower lr.
         items = [(e["prompt"], e) for e in train_ds.examples]   # pass the full example (reward may need start_yy)
         g = torch.Generator().manual_seed(args.seed)
@@ -555,7 +552,7 @@ def main() -> None:
     d_ent = panel_after["normalized_entropy"] - panel_before["normalized_entropy"]
     d_pr = panel_after["participation_ratio"] - panel_before["participation_ratio"]
     d_kurt = panel_after["kurtosis"] - panel_before["kurtosis"]
-    diffuse = d_ent > 0 and d_pr > 0  # entropy & PR up = more diffuse (Zhang's direction)
+    diffuse = d_ent > 0 and d_pr > 0  # entropy & PR up = more diffuse
     report = {"mode": args.mode, "task": args.task, "granularity": args.graph_granularity,
               "model_path": args.model_path, "num_steps": args.num_steps, "lr": args.lr,
               "capability_before": cap_before, "capability_after": cap_after,
@@ -565,7 +562,7 @@ def main() -> None:
               "general_probe": gen_cap,
               "panel_before": panel_before, "panel_after": panel_after,
               "delta_entropy": d_ent, "delta_PR": d_pr, "delta_kurtosis": d_kurt,
-              "direction": "DIFFUSE (Zhang)" if diffuse else "concentrate/mixed"}
+              "direction": "DIFFUSE" if diffuse else "concentrate/mixed"}
     with open(out / "contrast_report.json", "w") as f:
         json.dump(report, f, indent=2)
     # Save weights so the panel/eval can be re-run later.

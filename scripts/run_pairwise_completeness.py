@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Verification experiment V2 (plan 2026-07-29-verification-cost-experiments): EXACT pairwise-
+"""Verification experiment V2: EXACT pairwise-
 interaction completeness. For a condensed circuit with k kept edges we test EVERY pair (i,j) by
 exact masked forward: does knocking out i and j jointly differ from the sum of the two single
 knockouts (non-additive interaction)? This is the O(E^2) pairwise arm of Wang et al. 2023's
@@ -88,9 +88,8 @@ def main():
     inters.sort(key=lambda x: -abs(x["interaction"]))
     # cost projections for the arms we CANNOT run
     # Frozen comparison edge count, MEASURED per cell from the val-selection headline (every arm
-    # selected at the same bar), not a per-task constant. The old hardcoded
-    # {ioi:256, agreement:200, induction:300, doc:400} was a guess that no reviewer would accept,
-    # and it was wrong in both directions -- the real C0 count ranges 68 to 6021 across cells.
+    # selected at the same bar), not a per-task constant -- the real C0 count ranges 68 to 6021
+    # across cells.
     # "Best frozen" = the SMALLEST frozen arm that still clears the bar; an arm below the bar is
     # not a circuit for this behaviour, so counting it would flatter the baseline.
     frozen_k, frozen_arm = _best_frozen_k(a.task, a.model, a.seed)

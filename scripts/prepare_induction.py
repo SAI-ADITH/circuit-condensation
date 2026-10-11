@@ -8,7 +8,7 @@ continuation as guessable filler; with two, copy-what-followed-A dominates and a
 induction-capable model should be near ceiling. Splits are disjoint by construction
 (later splits exclude all earlier prompts).
 
-Data layout (2026-07-03): data/induction/<model>/{train,eval,test}.jsonl -- pass
+Data layout: data/induction/<model>/{train,eval,test}.jsonl -- pass
 --out-dir data/induction/<model> (default: data/induction/gpt2).
 
     python scripts/prepare_induction.py --model models/Qwen2.5-1.5B-Instruct \

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Larger controller-validation split, disjoint from the existing splits (2026-08-06).
+"""Larger controller-validation split, disjoint from the existing splits.
 
-Why: the gate compared a point estimate on 200 examples against a 0.05 tolerance and was
-consulted ~32 times per run keeping the best retry, so the accepted endpoint was optimistic
-and a third of them missed the same tolerance on the sealed split. The noise on 200 examples
+Why: a gate that compares a point estimate on 200 examples against a 0.05 tolerance, consulted
+~32 times per run keeping the best retry, accepts optimistic endpoints that can miss the same
+tolerance on the sealed split. The noise on 200 examples
 is +-0.021 to +-0.031, i.e. the tolerance is under two standard errors. At 2000 it is
 +-0.007 to +-0.010, which leaves room for a confidence-bound accept rule
 (prune_heal_gradual.py --accept-lcb).

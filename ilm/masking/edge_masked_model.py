@@ -3,7 +3,7 @@
 Standard Edge Pruning (Bhaskar 2024) freezes the model and learns a mask that
 *finds* a circuit. We invert it: the model's LoRA weights and the edge gates
 train together, so the model reorganises itself until a sparse set of edges
-reproduces its behaviour (joint co-training, doc 1 Option A).
+reproduces its behaviour.
 
 Mechanism (the "disentangled residual stream"): instead of the native
 ``residual = residual + block(x)`` accumulation, every reader rebuilds its input
@@ -537,9 +537,8 @@ class EdgeMaskedTransformer(nn.Module):
         # EMBEDDING sequences, with the graph left alone. ig_path="gate" (our default) instead
         # interpolates the edge gates, walking from the fully corrupted graph to the current one.
         # Both are fixed-delta/varying-gradient integrated gradients and both connect corrupted
-        # behaviour to clean; they differ in WHICH path. See the audit note in
-        # plans/2026-08-21-baseline-fidelity-audit.md for why the gate path is the default here
-        # and why the embed path exists (it is the check that our baseline is not a weak one).
+        # behaviour to clean; they differ in WHICH path. The gate path is the default here; the
+        # embed path follows Hanna et al. and exists to check that our baseline is not a weak one.
         emb_corr = None
         if ig_path == "embed":
             if corrupted is None or "embed" not in corrupted:

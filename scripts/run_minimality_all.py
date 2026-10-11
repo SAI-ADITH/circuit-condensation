@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exhaustive minimality (per-edge necessity) for every cell with a saved circuit (2026-07-10).
+"""Exhaustive minimality (per-edge necessity) for every cell with a saved circuit.
 
 Wang et al.'s third circuit criterion: MINIMAL -- every component earns its place. For each edge e
 in the circuit: remove just e, measure the task-accuracy drop; e is necessary if drop >= TOL (0.05).

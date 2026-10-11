@@ -37,7 +37,7 @@ read -r KIND TASK MODEL SEED <<< "$LINE"
 [ -n "${KIND:-}" ] || { echo "no cell at index $SLURM_ARRAY_TASK_ID"; exit 1; }
 export COND_CKPT_ROOT="checkpoints/headsave/${C1_ARM}/seed${SEED}"
 
-# Cost cutoff (plans/2026-08-20-pairwise-cost-cutoff.md). Exhaustive pairwise is O(k^2), and a
+# Cost cutoff. Exhaustive pairwise is O(k^2), and a
 # handful of cells project into the hundreds of GPU-hours -- those are the cells where
 # condensation left a LARGE circuit, so they are reported by closed-form cost in
 # results/pairwise_cost_table.json rather than executed. The skip list is keyed by

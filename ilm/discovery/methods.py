@@ -2,7 +2,7 @@
 
 Each method scores every edge (higher = more important to the behavior). The pipeline then
 sweeps a keep-budget over that ranking to draw a knee curve. All methods use the SAME
-contrastive behavior metric (Finding A fix) so the only thing that differs is HOW they score.
+contrastive behavior metric so the only thing that differs is HOW they score.
 
 Methods:
   EAP              - single-point Edge Attribution Patching (Syed et al.): one gradient x delta.
@@ -16,7 +16,7 @@ Methods:
                      importance): turn one edge OFF, measure KL from the full circuit. O(E)
                      forward passes -- for small graphs and as the anchor the cheap methods are
                      correlated against.
-  RandomRank       - control: random scores (the B2 "random subset" baseline).
+  RandomRank       - control: random scores (the "random subset" baseline).
   AntiRank(base)   - control: negate a base method's scores (keep the LEAST important edges).
 """
 from __future__ import annotations

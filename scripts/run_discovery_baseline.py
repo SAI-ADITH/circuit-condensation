@@ -31,12 +31,12 @@ MODELS = {"gpt2": "models/gpt2", "llama": "models/Llama-3.2-1B-Instruct",
           "qwen3-0.6b": "models/Qwen3-0.6B", "qwen3-4b": "models/Qwen3-4B"}
 ALL_CELLS = [f"{t}/{m}" for t in ("ioi", "agreement", "induction", "doc") for m in MODELS]
 
-# BASELINE SET (2026-07-17, per user): EAP, EAP-IG, Random run on EVERY cell (all gradient/O(1) in
+# BASELINE SET: EAP, EAP-IG, Random run on EVERY cell (all gradient/O(1) in
 # forward passes, so they scale to the 44k-edge head graphs). ACDC runs on SMALL cells only: it is
 # greedy and O(edges) forward passes per threshold, ~800x more expensive on qwen3-4b than gpt2, so
 # it is physically infeasible on the big head graphs -- the same limit ACDC's own paper hit. Exact
-# single-edge activation patching was DROPPED (also O(edges), and EAP-IG is the primary attribution
-# baseline). C0/C0.5 are produced by the condensation controller with frozen weights, not here.
+# single-edge activation patching is not run (also O(edges), and EAP-IG is the primary attribution
+# baseline). C0 is produced by the condensation controller with frozen weights, not here.
 ACDC_MAX_EDGES = 2800   # ~gpt2 head (2041) in; llama/gemma/qwen head graphs (>=3537) out.
 SEEDS = [11, 22, 33]    # SAME seeds as C1, so baseline-seed-k is paired with C1-seed-k (same data draw).
 

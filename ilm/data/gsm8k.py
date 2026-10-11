@@ -3,7 +3,7 @@
 Edge Pruning needs, per problem, a *clean* version and a minimally *corrupted*
 twin whose answer differs (the corrupted activations are what OFF edges read).
 
-Corruption strategy (doc 5 §1): change one integer in the question and recompute
+Corruption strategy: change one integer in the question and recompute
 the gold answer by re-evaluating the solution's ``<<a op b = c>>`` calculator
 annotations with the substituted value propagated through the dependency chain.
 A pair is kept only if the corrupted answer is a valid integer that *differs*

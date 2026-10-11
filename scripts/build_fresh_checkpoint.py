@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build a FRESH C1 starting checkpoint: LoRA attached but NEVER trained, gates all open
--- no Stage 1 joint training at all. This is now the default way to produce a C1 starting
-point (2026-07-03 pipeline change): attach LoRA+gates fresh, then hand straight to
+-- no Stage 1 joint training at all. This is the way to produce a C1 starting
+point: attach LoRA+gates fresh, then hand straight to
 scripts/prune_heal_gradual.py --adaptive, which does 100% of the reshaping and pruning
 with its own safety machinery (backtracking, capability gate, self-calibration).
 
@@ -36,9 +36,8 @@ def main() -> None:
     p.add_argument("--model-path", required=True)
     p.add_argument("--task", required=True, choices=["ioi", "gt", "doc", "induction", "agreement", "gsm8k"])
     p.add_argument("--graph-granularity", default="block", choices=["block", "head"],
-                   help="head is GPT-2-only (see CLAUDE.md); everything else uses block, "
-                        "including IOI in the main grid (a separate head-granularity IOI "
-                        "checkpoint is kept for the Wang ground-truth comparison specifically).")
+                   help="edge-graph granularity: 'head' (attention heads, used for the paper's "
+                        "grid) or 'block' (whole attention/MLP blocks).")
     p.add_argument("--max-length", type=int, default=64)
     args = p.parse_args()
 

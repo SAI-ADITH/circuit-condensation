@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
 """Frozen discovery curves scored on BOTH the validation and sealed test splits.
 
-Why this exists (2026-08-04 review remediation, plan 2026-08-04-review-remediation.md): the
-matched-accuracy comparison previously selected each frozen budget off the TEST-split curve --
-test-set selection, reviewer fatal E2. The fix is to select every arm's budget on the
-VALIDATION split under the controller's own faithfulness rule (val acc >= full-model val acc -
-0.05) and then read the test accuracy of that one selected budget. This script produces the
-missing ingredient: per-budget accuracy on eval.jsonl (200 ex, the controller's decision split)
-alongside a fresh per-budget accuracy on test.jsonl (1000 ex).
-
-The test-side numbers double as an independent verification of the 2026-07-30 regeneration of
-results/discovery/head (reviewer fatal E1): post-processing diffs them against the stored curves.
+Why this exists: selecting each frozen budget off the TEST-split curve would be test-set
+selection. Instead every arm's budget is selected on the VALIDATION split under the
+controller's own faithfulness rule (val acc >= full-model val acc - 0.05), and the test
+accuracy of that one selected budget is then read once. This script produces per-budget
+accuracy on eval.jsonl (200 ex, the controller's decision split) alongside per-budget
+accuracy on test.jsonl (1000 ex).
 
 Rankings mirror run_discovery_baseline.py exactly -- rank on the train split, same per-seed
 shuffle, same budget grid -- so each (cell, seed) is paired with the C1 run that saw the same

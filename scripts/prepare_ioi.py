@@ -4,7 +4,7 @@
 Splits are disjoint BY CONSTRUCTION: each later split is built excluding every
 clean_prompt already used by an earlier one (mirrors scripts/prepare_induction.py).
 
-Data layout (2026-07-03): data/ioi/<model>/{train,eval,test}.jsonl -- pass
+Data layout: data/ioi/<model>/{train,eval,test}.jsonl -- pass
 --out-dir data/ioi/<model> (default: data/ioi/gpt2).
 
     python scripts/prepare_ioi.py --model-path models/gpt2 \

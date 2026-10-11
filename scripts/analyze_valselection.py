@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Symmetric validation-selection comparison (2026-08-06).
+"""Symmetric validation-selection comparison.
 
-The reject review's fatal objection: our frozen baselines were selected by matching
-C1's accuracy ON THE TEST SPLIT, so the test split entered the selection of the
-number we then report. This rebuilds the headline under one rule applied to EVERY
-arm, C1 included:
+Selecting frozen baselines by matching C1's accuracy ON THE TEST SPLIT would let the
+test split enter the selection of the number we then report. This builds the headline
+under one rule applied to EVERY arm, C1 included:
 
     select the smallest circuit whose VALIDATION accuracy is within 0.05 of that
     arm's own full-graph validation accuracy, then read the sealed test split ONCE.

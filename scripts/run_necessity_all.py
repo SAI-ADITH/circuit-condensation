@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Completeness/necessity for every cell with a saved circuit (2026-07-10).
+"""Completeness/necessity for every cell with a saved circuit.
 
 Wang et al.'s second criterion: the circuit should carry the behavior -- knocking it OUT of the
 full graph should destroy the task where an equal-size RANDOM knockout does not. Generalizes the

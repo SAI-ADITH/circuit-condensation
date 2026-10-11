@@ -421,10 +421,9 @@ def circuit_faithfulness(masked_model, dataset, collator, device, batch_size=8,
                          num_batches: int = 1) -> float:
     """Mean token KL( full model || masked circuit ) over ``num_batches`` batches.
 
-    2026-07-18: num_batches was effectively hardcoded to 1, so every reported faithfulness --
-    including the headline final_test.faith -- was an n=8 estimate with a ~+-0.2 spread, while the
-    accuracy beside it was measured on the full 1000-example sealed split. Pass n_test_batches to
-    make the two like-for-like.
+    With num_batches=1 this is an n=8 estimate with a ~+-0.2 spread, while the accuracy beside it
+    is measured on the full 1000-example sealed split. Pass n_test_batches to make the two
+    like-for-like.
 
     Low = the small circuit reproduces the full model (the core circuit-quality
     claim). Reported alongside accuracy at each knee point.
@@ -460,8 +459,7 @@ def generative_circuit_accuracy(masked_model, tokenizer, examples, device,
     Unlike ``circuit_token_accuracy`` (teacher-forced: gold prefix fed token by token)
     and ``generative_accuracy`` (full model, gates OFF), this decodes greedily where
     every next-token logit comes from the *disentangled masked forward* — gates applied,
-    OFF edges reading the corrupted activation. It answers the honest question a reviewer
-    asks: does the trimmed circuit actually SOLVE the problem on its own, not just predict
+    OFF edges reading the corrupted activation. It answers the question: does the trimmed circuit actually SOLVE the problem on its own, not just predict
     the next gold token?
 
     Alignment: the clean and corrupted sequences grow by the SAME generated token each
@@ -534,10 +532,10 @@ def generative_circuit_accuracy(masked_model, tokenizer, examples, device,
 def make_logit_diff_metric(labels: torch.Tensor, foil_ids: torch.Tensor | None = None):
     """Return metric_fn(logits)->scalar: the behaviour EAP/EAP-IG attributes to edges.
 
-    CONTRASTIVE when ``foil_ids`` is given (Finding A fix, 2026-07-06): at each supervised
+    CONTRASTIVE when ``foil_ids`` is given: at each supervised
     answer slot the metric is ``logp(answer) - logp(foil)``. Because both share the same
     ``log_softmax`` normaliser, this equals ``logit(answer) - logit(foil)`` EXACTLY (the
-    logsumexp cancels) -- so the name is finally literal, and the attribution targets the
+    logsumexp cancels) -- so the name is literal, and the attribution targets the
     SAME answer-vs-foil decision the forced-choice eval scores (IOI: IO-vs-S; agreement:
     correct-vs-wrong-number verb), not "boost the answer token generically". Without a
     contrastive metric, attribution over-credits generic answer-boosting edges and

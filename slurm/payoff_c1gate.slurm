@@ -11,16 +11,11 @@
 #SBATCH --output=outputs/%x-%A_%a.out
 #SBATCH --array=0-14
 #
-# E4 (verification) and E5 (legibility) re-run on the c1gate arm.
+# Verification and legibility analyses on the c1gate arm (the paper's C1).
 #
-# The paper's payoff numbers were all computed on c1lazy -- an arm two generations old --
-# because these scripts had that name typed into them. They are now arm-parameterised via
-# C1_ARM, and checkpoints/headsave/c1gate/ was materialised from the regrid's saved rounds
-# by scripts/materialize_headsave.py (96/96 cells). Nothing here retrains anything; every
-# task reads a saved endpoint and ablates it.
-#
-# Output filenames carry the arm, so these cannot overwrite the c1lazy results the current
-# draft still cites -- the two can be diffed before anything is swapped into the paper.
+# The scripts are arm-parameterised via C1_ARM. checkpoints/headsave/c1gate/ is materialised
+# from the grid's saved rounds by scripts/materialize_headsave.py. Nothing here retrains
+# anything; every task reads a saved endpoint and ablates it. Output filenames carry the arm.
 set -euo pipefail
 PROJECT=${ILM_ROOT:-$PWD}
 cd "$PROJECT"

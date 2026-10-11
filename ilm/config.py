@@ -1,6 +1,6 @@
 """Configuration dataclasses for ILM training and evaluation.
 
-Defaults are the doc 5 §2 starting hyper-parameters for the 1B pilot.
+Defaults are the starting hyper-parameters used for the 1B-scale runs.
 """
 
 from __future__ import annotations
@@ -23,7 +23,7 @@ class LoRAConfig:
 
 @dataclass
 class LossConfig:
-    # PRESERVE-AND-SPARSIFY objective (2026-06-23 pivot). The model already does the
+    # PRESERVE-AND-SPARSIFY objective. The model already does the
     # task; we ONLY (a) keep it equal to its frozen original self and (b) shrink the
     # faithful circuit. There is NO ground-truth "get it right" loss -- that was an
     # "improve capability" signal pushed through the shrinking circuit, and it was

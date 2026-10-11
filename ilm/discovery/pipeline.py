@@ -2,7 +2,7 @@
 
 Frozen weights only -- these are the discovery baselines. The SAME eval dispatch as
 prune_heal_gradual.measure() is used (forced-choice per task) so a discovery-baseline knee is
-directly comparable to the C0/C0.5/C1 curves.
+directly comparable to the C0/C1 curves.
 """
 from __future__ import annotations
 

@@ -1,4 +1,4 @@
-"""Loss terms of the preserve-and-sparsify objective (2026-06-23 pivot).
+"""Loss terms of the preserve-and-sparsify objective.
 
     L = alpha * KL(original || masked)   # sparse circuit reproduces the original
       + delta * KL(original || full)     # full model stays equal to the original

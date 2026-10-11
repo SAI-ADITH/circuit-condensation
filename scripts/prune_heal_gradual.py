@@ -72,8 +72,8 @@ def _example_keys(path: str) -> set:
 
 def assert_disjoint_splits(train_path: str, eval_path: str, test_path: str) -> None:
     """MANDATORY split hygiene: the controller's accept/reject decisions must never see the
-    same examples as the sealed test split (that's exactly the "kept re-rolling until eval
-    passed" exposure a reviewer would flag), and eval/test must not silently be training data.
+    same examples as the sealed test split (otherwise re-rolling until eval passes would leak
+    test information), and eval/test must not silently be training data.
     Raises if train/eval/test overlap on the same example."""
     train_k, eval_k, test_k = (_example_keys(p) for p in (train_path, eval_path, test_path))
     te, tt, et = train_k & eval_k, train_k & test_k, eval_k & test_k
@@ -91,12 +91,9 @@ def assert_disjoint_splits(train_path: str, eval_path: str, test_path: str) -> N
 def assert_probe_disjoint(probe_path: str, eval_path: str, test_path: str) -> None:
     """The capability probe gates accept/reject, so it is part of the controller's decision path.
 
-    2026-07-16: this guard did not exist, and data/probe_mixed.jsonl was built from
-    data/ioi_test.jsonl -- putting 80/200 SEALED IOI test prompts into the gate. The controller's
-    per-round decisions were therefore conditioned on 40% of the sealed test set for ioi/{gpt2,llama},
-    while the code claimed the test split is "never used by the controller". assert_disjoint_splits()
-    only ever saw train/eval/test and passed silently. A probe drawn from train is fine (the healer
-    trains on it anyway); a probe drawn from eval or test is not.
+    A probe built from test prompts would condition the controller's per-round decisions on the
+    sealed test set, and assert_disjoint_splits() only sees train/eval/test. A probe drawn from
+    train is fine (the healer trains on it anyway); a probe drawn from eval or test is not.
     """
     if not probe_path:
         return
@@ -138,12 +135,10 @@ def parse_args() -> argparse.Namespace:
                         "ALL edges ON (the full model) — use 'full' for tasks whose joint-loss "
                         "circuit thrashed (docstring).")
     p.add_argument("--freeze-weights", action="store_true",
-                   help="C0.5 arm: run the FULL adaptive controller (EAP-IG ranking, margin-"
-                        "proportional cut, backtracking, cap-gate) but never let LoRA weights "
-                        "move -- heal() becomes a no-op. Isolates the effect of reshaping "
-                        "(C1 vs C0.5, same search machinery) from the effect of search "
-                        "sophistication (C0.5 vs C0, same frozen-weights condition, C0 uses "
-                        "Stage 1's cruder fixed-budget training instead of this controller).")
+                   help="C0 arm: run the FULL adaptive controller (EAP-IG ranking, cut, "
+                        "backtracking, cap-gate) but never let LoRA weights move -- heal() "
+                        "becomes a no-op. Isolates the effect of reshaping (C1 vs C0, same "
+                        "search machinery).")
     p.add_argument("--schedule", default="142,100,70,50,35,24,16,11,8",
                    help="descending edge counts to step through (first <= start ON count)")
     p.add_argument("--rerank", default="each", choices=["each", "once"],
@@ -155,19 +150,19 @@ def parse_args() -> argparse.Namespace:
                    help="weight on the circuit-fitting term α·KL(orig‖masked) during heal "
                         "(held at 1.0 historically; the untested circuit-pressure lever).")
     p.add_argument("--heal-mode", default="standard", choices=["standard", "mixed", "taskce"],
-                   help="'mixed' = MIXED-CUT-EDGE heal (explore/2026-07-04-mixed-cut-edge-heal.md): "
+                   help="'mixed' = MIXED-CUT-EDGE heal: "
                         "one objective KL(out‖ref) where each step feeds CORRUPTED (prob --mix-p) "
                         "or CLEAN cut-edge activations. Dissolves the α/δ ratio and preserves "
                         "full_cap for free; ignores --heal-delta and the leash machinery. "
                         "'taskce' = the C1-taskCE ABLATION: heal on TASK cross-entropy against the "
-                        "answer token instead of KL(orig‖masked). Tests the design choice 'why heal "
+                        "answer token instead of KL(orig‖masked). Ablates the design choice 'why heal "
                         "toward the frozen original rather than fine-tune on the task' -- expected to "
                         "drift capability / stop matching the original. No leash/ref term.")
     p.add_argument("--mix-p", type=float, default=0.5,
                    help="mixed heal: fraction of steps trained on the CORRUPTED (faithfulness) "
                         "case; the rest on CLEAN (full-model preservation). 0.5 = equal.")
     p.add_argument("--adaptive-mixed-switch", action="store_true",
-                   help="CONDITIONAL-MIXED SWITCH (explore/2026-07-04-mixed-cut-edge-heal.md): in "
+                   help="CONDITIONAL-MIXED SWITCH: in "
                         "--adaptive mode, heal STANDARD by default, but when a round is rejected "
                         "SOLELY because full_cap fell below its floor (circuit_acc + cap_ratio both "
                         "fine = full_cap is the binding constraint), re-heal the SAME cut with the "
@@ -247,17 +242,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--adaptive-cut", type=float, default=0.30, help="initial relative cut per round.")
     p.add_argument("--adaptive-min-cut", type=float, default=0.05, help="floor on the relative cut (gentleness near the cliff).")
     p.add_argument("--adaptive-min", type=int, default=4, help="never shrink below this many edges.")
-    # ---- reviewer-hardening (2026-08-06) -------------------------------------------------
-    # The accept test compared a POINT estimate on 200 eval examples against the floor, and
-    # the controller consults it ~32 times per run keeping the best retry. Selecting the max
-    # of noisy estimates biases the winner upward, which is why a third of the endpoints
-    # missed the same tolerance on the sealed split. --accept-lcb instead requires the LOWER
+    # ---- conservative accept rule --------------------------------------------------------
+    # A POINT estimate on 200 eval examples compared against the floor is consulted ~32 times
+    # per run, keeping the best retry. Selecting the max of noisy estimates biases the winner
+    # upward, so endpoints can miss the same tolerance on the sealed split. --accept-lcb requires the LOWER
     # end of a one-sided binomial confidence interval to clear the floor, so an accepted
     # circuit is conservative by construction. Pair it with a larger --eval-batches: noise
     # shrinks as 1/sqrt(n), and at n=200, p=0.75 the bound eats 0.051 -- the whole tolerance.
     p.add_argument("--accept-lcb", type=float, default=0.0,
                    help="z for a one-sided lower confidence bound in the accept test "
-                        "(0 = off, the old point-estimate rule; 1.645 = one-sided 95%%).")
+                        "(0 = off, point-estimate rule; 1.645 = one-sided 95%%).")
     # Per-round states, so the size/accuracy trajectory can be re-scored offline (Pareto
     # curves) or walked back to a larger circuit without re-running the cell. Only the last
     # K accepted states are kept: a full history runs 10-70MB per round per run.
@@ -303,7 +297,7 @@ def parse_args() -> argparse.Namespace:
                         "--adaptive would stop, no retries/backtracking, recording circuit_acc/full_cap/"
                         "cap_ratio every round, until --diagnostic-sweep-cap-ratio or --diagnostic-acc-floor "
                         "trips. Mutually exclusive with --adaptive -- run separately, never used for real "
-                        "C0/C0.5/C1 headline numbers.")
+                        "C0/C1 headline numbers.")
     p.add_argument("--diagnostic-sweep-cap-ratio", type=float, default=1.2,
                    help="stop the diagnostic sweep once cap_ratio reaches this ceiling.")
     p.add_argument("--diagnostic-acc-floor", type=float, default=0.4,
@@ -321,12 +315,12 @@ def parse_args() -> argparse.Namespace:
                    help="jsonl of an UNRELATED task (uses its clean_prompt strings as the generic-text "
                         "corpus for the capability probe).")
     p.add_argument("--probe-every-round", action="store_true",
-                   help="Unknown A (drift shape): measure the general-capability probe (ppl ratio vs "
+                   help="Drift shape: measure the general-capability probe (ppl ratio vs "
                         "original on --probe-data) after EVERY round, recorded per row. Decides whether "
                         "OOD damage arrives as a JUMP (reject-gate fixes it) or a slow RAMP (needs the "
                         "replay-mix leash).")
     p.add_argument("--cap-gate", type=float, default=0.0,
-                   help="Unknown B (capability-gated ACCEPT): a round is only accepted if the probe ppl "
+                   help="Capability-gated ACCEPT: a round is only accepted if the probe ppl "
                         "ratio <= this (e.g. 1.08) IN ADDITION to the accuracy floor. A capability failure "
                         "backtracks/re-rolls exactly like an accuracy failure. 0 = off, overridden by "
                         "--cap-gate-auto if set.")
@@ -376,7 +370,7 @@ def parse_args() -> argparse.Namespace:
                         "keeps weights only in memory).")
     p.add_argument("--measure-panel", action="store_true",
                    help="also record the EAP concentration panel (PR/entropy/kurtosis) at the "
-                        "baseline and each condensed round — the money-figure 'concentrate' axis.")
+                        "baseline and each condensed round.")
     p.add_argument("--panel-batches", type=int, default=8, help="batches averaged for the EAP panel")
     p.add_argument("--out", default=None)
     return p.parse_args()
@@ -422,7 +416,7 @@ def restore_lora(model, snap) -> None:
 
 def measure_panel(model, eval_ds, collator, device, panel_batches) -> dict:
     """EAP-IG concentration panel (PR / entropy / kurtosis) under the CURRENT mask — i.e.
-    the condensed circuit. This is the money-figure 'concentrate' axis, measured identically
+    the condensed circuit, measured identically
     to scripts/task_finetune.py's 'diffuse' axis (both now use edge_attributions_ig, not
     plain single-point EAP) so the two remain directly comparable."""
     model.eval()
@@ -461,19 +455,16 @@ def eap_ranking(model, train_ds, collator, device, rank_batches, ig_steps: int =
     alpha=1 (not identical to the old edge_attributions() call, but the same idea) if ever
     needed for a cheaper ranking pass.
 
-    SEEDED DATA DRAW (2026-07-18 fix). This loader used to be unshuffled, so every run ranked on
-    the SAME first `rank_batches` batches regardless of --seed. Seeds therefore varied healing
-    noise only, and in the C0 arm (frozen weights = no healing) they varied nothing at all: all
-    three C0 seeds produced byte-identical circuits. That matters because our own instability
-    probe showed data ORDER alone swings EAP-IG circuit size ~2x, so unshuffled ranking made the
-    reported seed variance an undercount of the real thing. Shuffling with a per-run generator
+    SEEDED DATA DRAW. An unshuffled loader would rank on the SAME first `rank_batches` batches
+    regardless of --seed, so seeds would vary healing noise only, and in the C0 arm (frozen
+    weights = no healing) nothing at all. Data ORDER alone swings EAP-IG circuit size ~2x, so
+    unshuffled ranking would undercount seed variance. Shuffling with a per-run generator
     makes --seed control the data draw, which is what "3 seeds" is taken to mean."""
     g = None
     if seed is not None:
-        # ROUND-VARYING DRAW (2026-07-18). A fixed `seed` re-shuffles to the SAME order on every
-        # call, so a ~20-round descent made every cut decision from one 64-example draw -- and the
-        # instability probe showed EAP-IG circuit size swings ~2x on data order alone, so the
-        # controller could ride whatever quirk that single draw had. Advancing a per-run call
+        # ROUND-VARYING DRAW. A fixed `seed` re-shuffles to the SAME order on every call, so a
+        # ~20-round descent would make every cut decision from one 64-example draw -- and EAP-IG
+        # circuit size swings ~2x on data order alone, so the controller could ride whatever quirk that single draw had. Advancing a per-run call
         # counter means the descent sees ~rounds x rank_batches x 8 distinct examples instead,
         # at zero extra cost. Still fully deterministic given --seed.
         eap_ranking._call = getattr(eap_ranking, "_call", 0) + 1
@@ -735,12 +726,11 @@ def heal(model, keep_idx, train_ds, collator, device, steps, lr, batch, delta,
          weight_decay: float = 0.01) -> tuple[float, float]:
     """Short leashed heal at a fixed mask. LoRA is NOT reset (accumulates across rounds).
 
-    freeze_weights=True (the C0.5 arm: full adaptive controller -- EAP-IG ranking, margin cut,
+    freeze_weights=True (the C0 arm: full adaptive controller -- EAP-IG ranking, margin cut,
     backtracking, cap-gate -- but weights genuinely never move): there is nothing to train, so
     this returns immediately (0 seconds, delta unchanged). The circuit's accuracy at a new mask
     is then whatever the untouched weights give, deterministically -- no heal loop needed, and
-    the capability probe trivially always passes (an untrained/frozen LoRA can't drift, same as
-    C0's "safe by construction" property).
+    the capability probe trivially always passes (an untrained/frozen LoRA can't drift).
 
     Leash term = delta * KL(orig||full). THREE modes (precedence: acc_floor > cap_tol > fixed):
       fixed (default)  -> delta is the constant `delta`.
@@ -772,8 +762,7 @@ def heal(model, keep_idx, train_ds, collator, device, steps, lr, batch, delta,
         p.requires_grad_(True)
     # weight_decay pulls the LoRA params toward ZERO, and a zero LoRA delta IS the original model --
     # so this is a drift leash toward the unmodified weights, enforced structurally rather than by
-    # training on any corpus (2026-07-18: the honest lever for shrinking circuits under the stricter
-    # WikiText gate; rehearsing on general text would contaminate the capability claim).
+    # training on any corpus (rehearsing on general text would contaminate the capability claim).
     opt = torch.optim.AdamW(lora_params, lr=lr, weight_decay=weight_decay)
     loader = cycle(DataLoader(train_ds, batch_size=batch, shuffle=True, collate_fn=collator))
     adaptive = acc_floor > 0.0 or cap_tol > 0.0 or circ_floor > 0.0
@@ -791,7 +780,7 @@ def heal(model, keep_idx, train_ds, collator, device, steps, lr, batch, delta,
         if heal_mode == "taskce":
             # C1-taskCE ABLATION: heal the circuit on TASK cross-entropy (predict the answer token)
             # instead of KL(orig‖masked). No reference to the frozen original -- this is exactly the
-            # "just fine-tune the adapter on the task" method a reviewer proposes. Expected to reach
+            # "just fine-tune the adapter on the task" alternative. Expected to reach
             # task accuracy but DRIFT from the original (capability loss, KL_orig up), which is what
             # justifies C1's KL-to-original objective.
             import torch.nn.functional as F
@@ -801,7 +790,7 @@ def heal(model, keep_idx, train_ds, collator, device, steps, lr, batch, delta,
             loss = F.cross_entropy(lp, labels[:, 1:].reshape(-1), ignore_index=-100)
             l_preserve = loss
         elif heal_mode == "mixed":
-            # MIXED-CUT-EDGE heal (explore/2026-07-04-mixed-cut-edge-heal.md): one objective --
+            # MIXED-CUT-EDGE heal: one objective --
             # reproduce ref whether the cut edges carry the CORRUPTED signal (prob mix_p) or the
             # CLEAN signal (prob 1-mix_p, == the full-model/preservation case). No alpha/delta
             # ratio: full_cap preservation falls out for free, and AdamW's per-step normalisation
@@ -979,7 +968,7 @@ def main() -> None:
     # comparison downstream reads `final_test` (test-side) against `m0_baseline` (eval-side) --
     # two different 200-example datasets. At n=200, 1 sigma is ~0.034, and the splits are not
     # stratified (agreement/llama3b's original scores 0.74 on eval vs 0.655 on test), so that
-    # mismatch manufactured a false "the circuit beats the original model" alarm on 2026-07-16.
+    # mismatch can manufacture a false "the circuit beats the original model" alarm.
     # Record the like-for-like number so downstream readers can compare test against test.
     base_test = meas_test() if args.test_data else None
     if base_test is not None:
@@ -1000,7 +989,7 @@ def main() -> None:
                                             n_boot=args.cap_gate_boot, batch=args.eval_batch,
                                             sigma_mult=args.cap_gate_sigma_mult)
         args.cap_gate = cap_gate_calib["gate"]
-        # DEFERRED calibration for a fresh/untrained checkpoint (2026-07-03): the calibration
+        # DEFERRED calibration for a fresh/untrained checkpoint: the calibration
         # above is genuinely degenerate here (sigma=0, not just small -- see calibrate_cap_gate's
         # docstring), so there's no real signal to gate on yet. Rather than substitute a number
         # borrowed from a DIFFERENT checkpoint's own calibration (not defensible -- it would
@@ -1028,9 +1017,8 @@ def main() -> None:
     rows = []
     report_extra = {}
 
-    # Per-round edge SETS, streamed to a sidecar JSONL next to --out (2026-07-12). The block grid
-    # saved only counts per round, which forced full re-condense runs for any analysis that needed
-    # the actual circuits (seed containment, minimality, overlap — see run_grid_recondense.py).
+    # Per-round edge SETS, streamed to a sidecar JSONL next to --out, so analyses that need the
+    # actual circuits (seed containment, minimality, overlap) don't require re-running the cell.
     # Appending after every accepted round also survives a job hitting the slurm time limit.
     edges_log = (Path(args.out).with_suffix("").parent /
                  (Path(args.out).with_suffix("").name + "_edges.jsonl")) if args.out else None
@@ -1102,9 +1090,8 @@ def main() -> None:
         full_floor = base["full_cap"] - args.adaptive_fullcap_tol   # task-capability gate (C1 only in practice)
         cut = args.adaptive_cut
 
-        # Transparency counters (2026-07-02): every rejected/re-rolled attempt gets counted here
-        # and reported in the final JSON, so "how many tries did it take" is a disclosed number
-        # instead of something a reviewer has to dig out of the logs.
+        # Transparency counters: every rejected/re-rolled attempt gets counted here and reported
+        # in the final JSON, so "how many tries did it take" is a disclosed number.
         stats = {"acc_floor_rejects": 0, "cap_gate_rejects": 0, "fullcap_floor_rejects": 0,
                  "heal_aborts": 0, "backtrack_halvings": 0, "cliff_reheal_probes": 0,
                  "mixed_switch_probes": 0, "mixed_switch_latched": 0, "lazy_skips": 0}
@@ -1151,12 +1138,12 @@ def main() -> None:
             new_keep = set(ranked[:tgt])
             es = min(ref, floor + heal_buf) if args.adaptive_early_every > 0 else 0.0
             if args.lazy_heal and not args.freeze_weights:
-                # LAZY HEAL (2026-07-21): test the RAW cut first; heal only if it dropped the circuit
+                # LAZY HEAL: test the RAW cut first; heal only if it dropped the circuit
                 # below the accuracy floor. Healing is the sole source of capability drift (frozen
                 # weights never drift -- that IS C0), so healing a cut that already passes is pure
                 # drift for zero benefit -- it just pushes cap_ratio toward the gate for nothing,
                 # which is what stops C1 early on drift-sensitive tasks (docstring). Where healing is
-                # genuinely needed (cut fails) this path is identical to before.
+                # genuinely needed (cut fails) this path is identical to the eager heal.
                 set_binary_mask(model, new_keep)
                 raw = meas()
                 if raw["circuit_acc"] >= floor:
@@ -1376,7 +1363,7 @@ def main() -> None:
                 cut = max(args.adaptive_min_cut, cut * args.adaptive_cut_decay)
 
         # OVERSHOOT: keep pruning a few MORE rounds PAST the cliff to chart how accuracy falls
-        # off — the knee-curve tail reviewers ask for. Each tail round restarts from the best
+        # off — the knee-curve tail. Each tail round restarts from the best
         # faithful weights (so a single divergent heal doesn't poison the whole tail) and cuts
         # one more min-cut step deeper. We remember the most-pruned checkpoint too.
         pruned_keep, pruned_snap, pruned_acc = set(best_keep), best_snap, best_acc
@@ -1418,7 +1405,7 @@ def main() -> None:
               f"retries: {stats}", flush=True)
         schedule = []  # skip the fixed-schedule loop below
 
-    # DIAGNOSTIC SWEEP (2026-07-03): NOT the real headline controller -- a separate, additive
+    # DIAGNOSTIC SWEEP: NOT the real headline controller -- a separate, additive
     # mode that charts the FULL degradation curve past where the adaptive controller above would
     # normally stop. No retries/backtracking (that machinery exists to protect the real headline
     # number; this mode explicitly wants to see past the cliff it defines). Straight descent:
@@ -1552,13 +1539,12 @@ def main() -> None:
               f"{final_test['circuit_acc']} | test faith-KL {final_test['faith']} "
               f"(eval was best_faithful) on {Path(args.test_data).name}", flush=True)
 
-        # ENDPOINT VALIDATION on the sealed split (2026-07-16). The accept predicate `round_ok`
+        # ENDPOINT VALIDATION on the sealed split. The accept predicate `round_ok`
         # runs on eval, and near the cliff a below-floor cut gets up to --adaptive-reheal EXTRA
         # fresh heals, accepted if ANY passes (see the loop above). That is a max-of-N over a
         # noisy 200-example score: E[max of 4] sits ~1.03 sigma (~+0.035 acc) above a single draw.
-        # The frozen arms (C0/C0.5) cannot use this -- heal() early-returns when freeze_weights, and
-        # the eval path has no shuffle, so their reheals are bit-identical duplicates (their JSONs
-        # log cliff_reheal_probes: 3 that changed nothing). So C1 can accept an endpoint whose TRUE
+        # The frozen arm (C0) cannot use this -- heal() early-returns when freeze_weights, and
+        # the eval path has no shuffle, so its reheals are bit-identical duplicates. So C1 can accept an endpoint whose TRUE
         # accuracy is below the floor while C0 cannot, and the arms are then NOT at equal capability
         # -- which is exactly what the headline "C1 < C0 at the same capability" asserts.
         # Reading test accuracy does not undo the edge-count selection, but it does tell us whether
@@ -1651,11 +1637,9 @@ def main() -> None:
               "heal_dual_lr": args.heal_dual_lr, "heal_circ_floor": args.heal_circ_floor,
               "cap_gate": args.cap_gate, "cap_abort": args.cap_abort, "cap_gate_calib": cap_gate_calib,
               "retry_floor": args.retry_floor, "retry_max": args.retry_max, "start_edges": start_n,
-              # Provenance for the settings that define the SELECTION RULE. These were not
-              # recorded before 2026-08-13, which is how an arm ran with a self-calibrated
-              # capability gate (~1.01) while the launcher and the paper both said 1.05:
-              # the effective value existed only at runtime. Anything that changes which
-              # circuit is returned must be readable off the artifact.
+              # Provenance for the settings that define the SELECTION RULE. Anything that
+              # changes which circuit is returned (e.g. a self-calibrated capability gate whose
+              # effective value exists only at runtime) must be readable off the artifact.
               "cfg_accept_lcb": args.accept_lcb, "cfg_adaptive_min": args.adaptive_min,
               "cfg_adaptive": bool(args.adaptive), "cfg_freeze_weights": bool(args.freeze_weights),
               "cfg_cap_gate_auto": bool(getattr(args, "cap_gate_auto", False)),

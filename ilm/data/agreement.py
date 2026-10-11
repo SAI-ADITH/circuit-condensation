@@ -3,10 +3,9 @@ Lakretz 2019; Finlayson 2021). The model must track the grammatical NUMBER of th
 subject across an intervening ATTRACTOR of the opposite number, then predict the
 agreeing verb.
 
-2026-07-03 redesign: the original version had exactly ONE syntactic template (a single
-prepositional-phrase attractor) — real lexical variety, zero STRUCTURAL variety. The
+A single syntactic template would give lexical variety but no STRUCTURAL variety. The
 number-agreement literature studies this behavior specifically by varying the SHAPE of
-the intervening material, not just the words in it, so we now generate a MIX of three
+the intervening material, not just the words in it, so we generate a MIX of three
 frames drawn from that literature:
 
   "pp1" (Linzen 2016, the original template): one PP attractor.

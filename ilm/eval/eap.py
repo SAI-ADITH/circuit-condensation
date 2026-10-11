@@ -1,12 +1,12 @@
 """The EAP concentration panel (evaluation only).
 
 Given per-edge attribution scores, collapse them into the three metrics reported
-side-by-side (doc 3): normalised entropy, participation ratio, kurtosis. Zhang
-2026 reports entropy and kurtosis; we add participation ratio ("effective number
+side-by-side: normalised entropy, participation ratio, kurtosis. Zhang et al.
+(2025) report entropy and kurtosis; we add participation ratio ("effective number
 of edges"). Agreement across the three is the robust result; we never blend them
 into a weighted score, and we never optimise them (sparsity is the train signal).
 
-Directions, after training should move *opposite* to Zhang's RL result:
+Directions (Zhang et al. 2025 report RL fine-tuning moving these toward diffuse):
     entropy            lower  = more concentrated
     participation_ratio lower = more concentrated (fewer effective edges)
     kurtosis           higher = more concentrated (peakier)
