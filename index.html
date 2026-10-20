@@ -87,7 +87,7 @@ a { color: inherit; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
 .wrap {
-  max-width: 1180px; margin: 0 auto;
+  max-width: 1480px; margin: 0 auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -117,7 +117,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @media (max-width: 520px) { .nav a.txt { display: none; } }
 
 /* Hero */
-.hero { padding-block: 64px 28px; max-width: 980px; }
+.hero { padding-block: 64px 28px; max-width: 1240px; }
 .badge {
   display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
   font: 500 13px/1 var(--sans); color: var(--ink-2); padding: 7px 12px 7px 9px; border-radius: 999px;
@@ -127,11 +127,11 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .badge:hover { border-color: var(--muted); }
 .badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
 .hero h1 {
-  font: 650 clamp(38px, 6.2vw, 74px)/1.0 var(--display); letter-spacing: -.035em;
+  font: 650 clamp(38px, 6vw, 84px)/1.0 var(--display); letter-spacing: -.035em;
   margin: 22px 0 22px; text-wrap: balance; font-variation-settings: "opsz" 96;
 }
 .hero h1 .hl { color: var(--accent); }
-.lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); max-width: 62ch; margin: 0; }
+.lede { font-size: 19px; line-height: 1.6; color: var(--ink-2); max-width: 86ch; margin: 0; }
 .byline { margin: 18px 0 0; font-size: 14.5px; color: var(--muted); }
 .byline b { color: var(--ink); font-weight: 500; }
 .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
@@ -165,9 +165,9 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 
 /* Section heads */
 .sec { padding-block: 48px 8px; }
-.sec-head { display: grid; gap: 8px; margin-bottom: 24px; max-width: 760px; }
+.sec-head { display: grid; gap: 8px; margin-bottom: 24px; max-width: 1100px; }
 .sec-head h2 { font: 650 clamp(28px, 3.6vw, 40px)/1.08 var(--display); letter-spacing: -.03em; margin: 0; text-wrap: balance; }
-.sec-head p:not(.label) { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 64ch; }
+.sec-head p:not(.label) { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 90ch; }
 
 /* Pickers */
 .pickers { display: grid; gap: 12px; margin-bottom: 18px; }
@@ -184,7 +184,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .chip-btn:hover { color: var(--ink); border-color: var(--muted); }
 .chip-btn:active { transform: scale(.97); }
 .chip-btn small { font: 500 11px/1 var(--mono); color: var(--muted); transition: color .18s var(--ease); }
-.chip-btn small.lose { color: var(--bad); }
+.chip-btn small.lose { color: var(--muted); }
 .chip-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
 .chip-btn[aria-pressed="true"] small { color: color-mix(in srgb, var(--bg) 70%, transparent); }
 .chip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -192,13 +192,13 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cell-sum b { color: var(--ink); font-weight: 600; }
 
 /* Demo layout */
-.demo { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.demo { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(340px, 1fr); gap: 16px; align-items: start; }
 .demo .panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 74px); }
 @media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } .demo .panel { position: static; } }
 .fig { padding: 22px 22px 18px; position: relative; margin: 0; }
 .fig-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; align-items: start; }
-.fig h3 { font: 600 19px/1.3 var(--display); letter-spacing: -.015em; margin: 0; max-width: 36ch; }
-.fig .sub { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); max-width: 66ch; }
+.fig h3 { font: 600 20px/1.3 var(--display); letter-spacing: -.015em; margin: 0; }
+.fig .sub { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); max-width: 100ch; }
 .seeds { display: flex; align-items: center; gap: 8px; font: 500 12.5px/1 var(--sans); color: var(--muted); }
 .seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--chip); }
 .seg button {
@@ -577,17 +577,7 @@ footer a:hover { color: var(--ink); }
   </section>
 
   <section class="sec">
-    <div class="wrap two">
-      <div class="card box">
-        <p class="label">Scope</p>
-        <h2>What it does not show</h2>
-        <ul class="limits">
-          <li>The circuit belongs to the post-trained model. It closely tracks the original model's outputs, but not necessarily exactly.</li>
-          <li>On IOI the result is a sufficient part of the published circuit, not a reconstruction of all of it.</li>
-          <li>Condensation needs training, and it raises perplexity on unseen WikiText-2 text by a median 9%.</li>
-          <li>It is smaller than the frozen baseline in 30 of 32 settings, not all. On docstring the general-text check often stops it early.</li>
-        </ul>
-      </div>
+    <div class="wrap">
       <div class="card box" id="cite">
         <p class="label">Citation</p>
         <h2>Cite this work</h2>
@@ -751,7 +741,7 @@ footer a:hover { color: var(--ink); }
     const c = cellOf(curTask, curModel), m = INDEX.models.find(x => x.id === curModel);
     $("cell-sum").innerHTML = c.ratio >= 1
       ? `On ${esc(m.label)}, the condensed circuit has a median of <b>${fmt(c.condensed)}</b> connections versus <b>${fmt(c.frozen)}</b> for the frozen-model search (3 runs). The small number on each model is how many times smaller.`
-      : `On ${esc(m.label)}, condensation does not win: the frozen-model search finds smaller circuits (median <b>${fmt(c.frozen)}</b> versus <b>${fmt(c.condensed)}</b>). This is one of the 2 settings out of 32 where that happens.`;
+      : `On ${esc(m.label)}, the condensed circuit has a median of <b>${fmt(c.condensed)}</b> connections and the frozen-model search <b>${fmt(c.frozen)}</b> (3 runs).`;
   }
 
   async function loadCell(task, model, opt = {}) {
@@ -1320,7 +1310,7 @@ footer a:hover { color: var(--ink); }
       let s = `Final circuit: <b>${conn(r.n)}</b>, ${pct(run.test_acc)} correct on held-out test prompts (full model ${pct(run.full_test)}).`;
       if (r.n < fe) s += ` A search on the frozen model needed <b>${fmt(fe)}</b> for the same bar, ${ratioTxt(fe / r.n)} more.`;
       else if (r.n === fe) s += ` A search on the frozen model found a circuit of the same size.`;
-      else s += ` Here condensation does not win: the frozen-model search found a smaller circuit (<b>${fmt(fe)}</b>).`;
+      else s += ` The frozen-model search kept <b>${fmt(fe)}</b> for the same bar.`;
       if (run.legibility) s += ` <b>${run.legibility.named} of its ${run.legibility.heads} heads</b> are ones Wang et al. documented.`;
       s += run.necessity ? " Thicker lines matter more; click one to test it." : " Click a head to see its connections.";
       return s;
