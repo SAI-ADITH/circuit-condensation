@@ -1,0 +1,1393 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Circuit Condensation</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Circuit Condensation post-trains a language model so a behavior runs through a circuit small enough to check by hand. Watch circuits condense across 4 behaviors and 8 models.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Circuit Condensation: circuits small enough to check by hand">
+<meta property="og:description" content="Post-training that concentrates a behavior's causal circuit. Condensed circuits are 8.1x smaller than the strongest frozen-weight baseline, smaller in 30 of 32 settings.">
+<meta property="og:url" content="https://sai-adith.github.io/circuit-condensation/">
+<meta property="og:image" content="https://sai-adith.github.io/circuit-condensation/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://sai-adith.github.io/circuit-condensation/og.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='8' fill='%234f46e5'/%3E%3Cg fill='%23fff'%3E%3Ccircle cx='10' cy='10' r='2'/%3E%3Ccircle cx='22' cy='10' r='2'/%3E%3Ccircle cx='10' cy='22' r='2'/%3E%3Ccircle cx='16' cy='18' r='4'/%3E%3C/g%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&family=Geist:wght@400..600&family=Geist+Mono:wght@400..500&display=swap">
+<style>
+/* Layout: a crisp, cool research page. A grotesque headline with one indigo phrase,
+   three result cards that each carry a small picture of their number, then one
+   working figure: pick a behavior, a model and an example, and watch the circuit
+   shrink beside a live status panel. Indigo means "condensation"; the three role
+   colors belong to the data. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --ink: #0c0e13;
+  --ink-2: #4b5262;
+  --muted: #8b92a1;
+  --rule: #e4e7ed;
+  --grid: #eef0f4;
+  --chip: #eff1f5;
+  --accent: #4f46e5;
+  --accent-ink: #ffffff;
+  --accent-soft: #ecebfd;
+  --edge: #1c2130;
+  --cut: #e5484d;
+  --node: #a4aab6;
+  --node-off: #d3d7df;
+  --role-move: #2a78d6;
+  --role-inhibit: #eb6834;
+  --role-detect: #1baf7a;
+  --good: #16834a;
+  --bad: #d13b3b;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 14px 32px -18px rgba(16, 24, 40, .16);
+  --display: "Bricolage Grotesque", "Geist", system-ui, sans-serif;
+  --sans: "Geist", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --ease: cubic-bezier(.4, 0, .2, 1);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0c10; --surface: #12151b; --ink: #eef0f5; --ink-2: #a9b0bd; --muted: #6e7685;
+    --rule: #232834; --grid: #1a1e27; --chip: #1a1e27;
+    --accent: #8b84ff; --accent-ink: #0a0c10; --accent-soft: rgba(139, 132, 255, .15);
+    --edge: #e8ebf2; --cut: #ff6b6b; --node: #6f7685; --node-off: #2a2f3a;
+    --role-move: #3987e5; --role-inhibit: #d95926; --role-detect: #199e70;
+    --good: #3fbf73; --bad: #ff6b6b;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 14px 32px -18px rgba(0, 0, 0, .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a0c10; --surface: #12151b; --ink: #eef0f5; --ink-2: #a9b0bd; --muted: #6e7685;
+  --rule: #232834; --grid: #1a1e27; --chip: #1a1e27;
+  --accent: #8b84ff; --accent-ink: #0a0c10; --accent-soft: rgba(139, 132, 255, .15);
+  --edge: #e8ebf2; --cut: #ff6b6b; --node: #6f7685; --node-off: #2a2f3a;
+  --role-move: #3987e5; --role-inhibit: #d95926; --role-detect: #199e70;
+  --good: #3fbf73; --bad: #ff6b6b;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .35), 0 14px 32px -18px rgba(0, 0, 0, .6);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 16px/1.6 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color .3s var(--ease), color .3s var(--ease);
+}
+a { color: inherit; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 720px) {
+  .wrap { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); }
+}
+.label { font: 500 13px/1.4 var(--sans); color: var(--accent); margin: 0; }
+
+/* Top bar */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: saturate(1.4) blur(10px); -webkit-backdrop-filter: saturate(1.4) blur(10px); border-bottom: 1px solid var(--rule); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
+.topbar .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 12px; }
+.brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.brand b { font: 650 18px/1 var(--display); letter-spacing: -.02em; }
+.nav { display: flex; align-items: center; gap: 4px; }
+.nav a {
+  font: 500 14px/1 var(--sans); color: var(--ink-2); text-decoration: none;
+  padding: 9px 11px; border-radius: 999px; transition: color .15s var(--ease), background-color .15s var(--ease);
+}
+.nav a:hover { color: var(--ink); background: var(--chip); }
+.icon-btn {
+  all: unset; cursor: pointer; width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center;
+  color: var(--ink-2); transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.icon-btn:hover { background: var(--chip); color: var(--ink); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); }
+@media (max-width: 520px) { .nav a.txt { display: none; } }
+
+/* Hero */
+.hero { padding-block: 64px 28px; max-width: 980px; }
+.badge {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+  font: 500 13px/1 var(--sans); color: var(--ink-2); padding: 7px 12px 7px 9px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--rule); box-shadow: var(--shadow);
+  transition: border-color .15s var(--ease);
+}
+.badge:hover { border-color: var(--muted); }
+.badge i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.hero h1 {
+  font: 650 clamp(38px, 6.2vw, 74px)/1.0 var(--display); letter-spacing: -.035em;
+  margin: 22px 0 22px; text-wrap: balance; font-variation-settings: "opsz" 96;
+}
+.hero h1 .hl { color: var(--accent); }
+.lede { font-size: 18px; line-height: 1.6; color: var(--ink-2); max-width: 62ch; margin: 0; }
+.byline { margin: 18px 0 0; font-size: 14.5px; color: var(--muted); }
+.byline b { color: var(--ink); font-weight: 500; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; text-decoration: none; cursor: pointer;
+  font: 500 14.5px/1 var(--sans); padding: 12px 18px; border-radius: 999px;
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+  transition: transform .15s var(--ease), border-color .15s var(--ease), box-shadow .15s var(--ease);
+}
+.btn:hover { border-color: var(--muted); transform: translateY(-1px); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: 0 6px 18px -8px var(--accent); }
+
+/* Result cards */
+.results { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; padding-block: 20px 40px; }
+@media (max-width: 900px) { .results { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--surface); border: 1px solid var(--rule); border-radius: 18px; box-shadow: var(--shadow); min-width: 0; }
+.res { padding: 22px 22px 20px; display: grid; gap: 14px; align-content: start; }
+.res .k { font: 500 13px/1.3 var(--sans); color: var(--ink-2); }
+.res .v { font: 650 46px/1 var(--display); letter-spacing: -.03em; font-variation-settings: "opsz" 96; }
+.res .v small { font-size: 22px; color: var(--muted); font-weight: 500; letter-spacing: -.01em; }
+.res p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--ink-2); }
+.bars { display: grid; gap: 7px; font: 400 12px/1.2 var(--sans); color: var(--muted); }
+.bars .row { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 10px; }
+.bars .bar { height: 8px; border-radius: 0 4px 4px 0; background: var(--node); transform-origin: left; animation: grow 1.1s var(--ease) both; }
+.bars .bar.acc { background: var(--accent); animation-delay: .25s; }
+.waffle { display: grid; grid-template-columns: repeat(16, 1fr); gap: 4px; max-width: 300px; }
+.waffle i { aspect-ratio: 1; border-radius: 3px; background: var(--grid); border: 1px solid var(--rule); }
+.waffle i.on { background: var(--accent); border-color: var(--accent); animation: pop .5s var(--ease) both; }
+@keyframes grow { from { transform: scaleX(.02); } }
+@keyframes pop { from { transform: scale(.4); opacity: .3; } }
+
+/* Section heads */
+.sec { padding-block: 48px 8px; }
+.sec-head { display: grid; gap: 8px; margin-bottom: 24px; max-width: 760px; }
+.sec-head h2 { font: 650 clamp(28px, 3.6vw, 40px)/1.08 var(--display); letter-spacing: -.03em; margin: 0; text-wrap: balance; }
+.sec-head p:not(.label) { margin: 0; color: var(--ink-2); font-size: 16px; max-width: 64ch; }
+
+/* Pickers */
+.pickers { display: grid; gap: 12px; margin-bottom: 18px; }
+.pick-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; align-items: center; }
+.pick-row > span { font: 500 13px/1.3 var(--sans); color: var(--muted); }
+@media (max-width: 640px) { .pick-row { grid-template-columns: minmax(0, 1fr); gap: 6px; } .pick-row > span:empty { display: none; } }
+.chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.chip-btn {
+  all: unset; cursor: pointer; box-sizing: border-box; display: inline-flex; align-items: baseline; gap: 7px;
+  font: 500 14px/1 var(--sans); color: var(--ink-2); padding: 9px 11px; border-radius: 999px;
+  background: var(--surface); border: 1px solid var(--rule);
+  transition: background-color .18s var(--ease), color .18s var(--ease), border-color .18s var(--ease), transform .12s var(--ease);
+}
+.chip-btn:hover { color: var(--ink); border-color: var(--muted); }
+.chip-btn:active { transform: scale(.97); }
+.chip-btn small { font: 500 11px/1 var(--mono); color: var(--muted); transition: color .18s var(--ease); }
+.chip-btn small.lose { color: var(--bad); }
+.chip-btn[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+.chip-btn[aria-pressed="true"] small { color: color-mix(in srgb, var(--bg) 70%, transparent); }
+.chip-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cell-sum { margin: 0; font-size: 14.5px; color: var(--ink-2); min-height: 1.6em; }
+.cell-sum b { color: var(--ink); font-weight: 600; }
+
+/* Demo layout */
+.demo { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.demo .panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 74px); }
+@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } .demo .panel { position: static; } }
+.fig { padding: 22px 22px 18px; position: relative; margin: 0; }
+.fig-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; align-items: start; }
+.fig h3 { font: 600 19px/1.3 var(--display); letter-spacing: -.015em; margin: 0; max-width: 36ch; }
+.fig .sub { margin: 6px 0 0; font-size: 14px; color: var(--ink-2); max-width: 66ch; }
+.seeds { display: flex; align-items: center; gap: 8px; font: 500 12.5px/1 var(--sans); color: var(--muted); }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 999px; background: var(--chip); }
+.seg button {
+  all: unset; cursor: pointer; font: 500 12px/1 var(--mono); color: var(--ink-2);
+  padding: 6px 10px; border-radius: 999px; transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.seg button:focus-visible { outline: 2px solid var(--accent); }
+
+.examples { margin-top: 16px; border: 1px solid var(--rule); border-radius: 14px; overflow: hidden; }
+.ex-tabs { display: flex; align-items: center; gap: 2px; padding: 6px 6px 0; background: var(--chip); }
+.ex-tabs button {
+  all: unset; cursor: pointer; font: 500 12.5px/1 var(--sans); color: var(--ink-2); padding: 9px 12px 10px;
+  border-radius: 9px 9px 0 0; transition: background-color .15s var(--ease), color .15s var(--ease);
+}
+.ex-tabs button[aria-selected="true"] { background: var(--surface); color: var(--ink); }
+.ex-tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.ex-tabs .note { margin-left: auto; padding: 0 8px 4px; font-size: 12px; color: var(--muted); }
+@media (max-width: 600px) { .ex-tabs .note { display: none; } .ex-tabs button { padding: 9px 9px 10px; } }
+.prompt { padding: 13px 15px; font: 400 13.5px/1.65 var(--mono); color: var(--ink-2); overflow-wrap: anywhere; background: var(--surface); }
+.prompt pre { margin: 0; font: inherit; white-space: pre-wrap; display: inline; }
+.prompt .arrow { color: var(--muted); padding: 0 6px; }
+.prompt .ans { color: var(--accent-ink); background: var(--accent); font-weight: 500; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.prompt .foil { color: var(--muted); white-space: nowrap; margin-left: 6px; }
+.prompt mark { background: var(--accent-soft); color: var(--ink); border-radius: 4px; padding: 0 2px; }
+.prompt .trig { color: var(--ink); font-weight: 600; text-decoration: underline; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+
+.graph-wrap { position: relative; margin-top: 10px; }
+.graph-wrap svg, .graph-wrap canvas { display: block; width: 100%; }
+#graph { position: relative; z-index: 2; height: auto; touch-action: manipulation; }
+#graph-bg, #edges { position: absolute; left: 0; top: 0; }
+#graph-bg { height: 100%; }
+#edges { z-index: 1; pointer-events: none; }
+#graph-bg text, #graph text { font-family: var(--mono); fill: var(--muted); }
+#graph-bg .row-label { font-size: 10px; }
+#graph-bg .axis-label { font-size: 10px; font-family: var(--sans); }
+#graph-bg .row-line { stroke: var(--grid); stroke-width: 1; }
+#graph .port { fill: var(--surface); stroke: var(--muted); stroke-width: 1.2; }
+#graph .pill rect { fill: var(--ink); }
+#graph .pill text { fill: var(--bg); font-size: 11px; font-weight: 500; }
+#graph .pill.in rect { fill: var(--chip); stroke: var(--rule); }
+#graph .pill.in text { fill: var(--ink-2); }
+@media (max-width: 600px) {
+  #graph-bg .row-label { font-size: 15px; }
+  #graph-bg .axis-label { font-size: 15px; }
+  #graph .pill text { font-size: 15px; }
+}
+.hit { fill: none; stroke: transparent; stroke-width: 10; cursor: pointer; pointer-events: stroke; }
+.node { cursor: pointer; transition: opacity .3s var(--ease); }
+.node .dot {
+  transform-box: fill-box; transform-origin: center;
+  fill: var(--node); stroke: var(--surface); stroke-width: 1.4;
+  transition: transform .55s var(--ease), fill .4s var(--ease);
+}
+.node.r-move .dot { fill: var(--role-move); }
+.node.r-inhibit .dot { fill: var(--role-inhibit); }
+.node.r-detect .dot { fill: var(--role-detect); }
+.node.mlp .dot { fill: var(--ink-2); }
+svg.plain .node:not(.mlp) .dot { fill: var(--accent); }
+.node.idle .dot, svg.plain .node.idle:not(.mlp) .dot { transform: scale(.42); fill: var(--node-off); stroke-width: 0; }
+.node.idle { cursor: default; }
+.node.sel .dot { stroke: var(--ink); stroke-width: 2; }
+svg.focus .node:not(.hl) { opacity: .3; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--ink-2); }
+.legend li { display: inline-flex; align-items: center; gap: 7px; }
+.sw { width: 10px; height: 10px; border-radius: 50%; flex: none; display: inline-block; }
+.sw.move { background: var(--role-move); } .sw.inhibit { background: var(--role-inhibit); } .sw.detect { background: var(--role-detect); }
+.sw.none { background: var(--node); } .sw.head { background: var(--accent); } .sw.mlp { background: var(--ink-2); border-radius: 3px; }
+.sw.line { width: 18px; height: 2px; border-radius: 1px; background: var(--edge); opacity: .7; }
+.legend .src { color: var(--muted); }
+
+.controls { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 14px; margin-top: 16px; }
+.play {
+  all: unset; cursor: pointer; width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--accent); color: var(--accent-ink);
+  box-shadow: 0 6px 18px -8px var(--accent);
+  transition: transform .15s var(--ease);
+}
+.play:hover { transform: scale(1.06); }
+.play:active { transform: scale(.96); }
+.play:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.skip { all: unset; cursor: pointer; font: 500 13px/1 var(--sans); color: var(--ink-2); padding: 9px 12px; border-radius: 999px; border: 1px solid var(--rule); white-space: nowrap; transition: border-color .15s var(--ease), color .15s var(--ease); }
+.skip:hover { color: var(--ink); border-color: var(--muted); }
+.skip:focus-visible { outline: 2px solid var(--accent); }
+.scrub { position: relative; height: 40px; }
+.scrub input { position: absolute; inset: 0; width: 100%; margin: 0; opacity: 0; cursor: pointer; z-index: 2; height: 40px; }
+.track { position: absolute; left: 8px; right: 8px; top: 12px; height: 6px; border-radius: 3px; background: var(--grid); }
+.track .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--accent); transition: width .45s var(--ease); }
+.track .over { position: absolute; top: 0; bottom: 0; right: 0; border-radius: 3px; background: repeating-linear-gradient(135deg, transparent 0 3px, var(--rule) 3px 5px); }
+.stopmark { position: absolute; top: 7px; width: 3px; height: 16px; margin-left: -1.5px; border-radius: 2px; background: var(--good); }
+.thumb {
+  position: absolute; top: 5px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--accent); box-shadow: var(--shadow);
+  transition: left .45s var(--ease); pointer-events: none;
+}
+.scrub input:focus-visible ~ .thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scrub-labels { position: absolute; left: 8px; right: 8px; top: 27px; font: 500 10.5px/1 var(--mono); color: var(--muted); }
+.scrub-labels span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.scrub-labels span.l { transform: none; } .scrub-labels span.r { transform: translateX(-100%); }
+.scrub-labels .stop-l { color: var(--good); }
+.keys { margin-top: 12px; font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+kbd { font: 500 10.5px/1 var(--mono); padding: 3px 5px; border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 5px; color: var(--ink-2); background: var(--surface); }
+@media (max-width: 560px) { .controls { grid-template-columns: auto minmax(0, 1fr); } .skip { grid-column: 1 / -1; justify-self: start; } }
+@media (hover: none), (max-width: 560px) { .keys { display: none; } }
+
+/* Popover */
+.pop {
+  position: absolute; z-index: 5; width: 264px; max-width: calc(100% - 16px);
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 12px; box-shadow: var(--shadow);
+  padding: 12px 14px; font-size: 13px; line-height: 1.5; color: var(--ink-2);
+  opacity: 0; transform: translateY(4px) scale(.98); pointer-events: none; transition: opacity .16s var(--ease), transform .16s var(--ease);
+}
+.pop.show { opacity: 1; transform: none; pointer-events: auto; }
+.pop .t { font: 500 13px/1.3 var(--mono); color: var(--ink); }
+.pop .role { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12.5px; }
+.pop .meter { margin-top: 10px; height: 6px; border-radius: 3px; background: var(--grid); overflow: hidden; }
+.pop .meter i { display: block; height: 100%; background: var(--accent); border-radius: 0 3px 3px 0; }
+.pop p { margin: 8px 0 0; }
+.pop .k { color: var(--ink); font-weight: 600; }
+
+/* Side panel */
+.panel { padding: 22px; display: grid; gap: 18px; }
+.state {
+  display: inline-flex; align-items: center; gap: 8px; justify-self: start;
+  font: 500 12.5px/1 var(--sans); padding: 7px 11px; border-radius: 999px; background: var(--chip); color: var(--ink-2);
+  transition: background-color .3s var(--ease), color .3s var(--ease);
+}
+.state .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); transition: background-color .3s var(--ease); }
+.state.final { color: var(--good); } .state.final .dot { background: var(--good); }
+.state.over { color: var(--bad); } .state.over .dot { background: var(--bad); }
+.count { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.count .big { font: 650 72px/0.9 var(--display); letter-spacing: -.04em; color: var(--accent); font-variant-numeric: tabular-nums; font-variation-settings: "opsz" 96; }
+.count .of { font-size: 14px; color: var(--ink-2); line-height: 1.35; }
+.count .of b { display: block; color: var(--ink); font-weight: 500; }
+.metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metric { background: var(--chip); border-radius: 12px; padding: 11px 13px; }
+.metric .l { font: 500 12px/1.3 var(--sans); color: var(--muted); }
+.metric .v { font: 600 21px/1.2 var(--sans); margin-top: 4px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 6px; }
+.metric .v .st { font-size: 12px; }
+.metric .n { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.metric.warn .v { color: var(--bad); }
+.caption { margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink-2); min-height: 7.4em; transition: opacity .2s var(--ease); }
+.caption b { color: var(--ink); font-weight: 600; }
+.caption.fade { opacity: 0; }
+.knee-head h4 { margin: 0 0 4px; font: 600 14px/1.3 var(--sans); }
+#knee { display: block; width: 100%; height: auto; overflow: visible; }
+#knee text { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
+#knee .gridline { stroke: var(--grid); }
+#knee .baseline { stroke: var(--rule); }
+#knee .c-line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+#knee .c-future { fill: none; stroke: var(--accent); stroke-width: 2; stroke-opacity: .18; stroke-linejoin: round; }
+#knee .f-line { fill: none; stroke: var(--muted); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; opacity: .8; }
+#knee .c-pt { fill: var(--accent); stroke: var(--surface); stroke-width: 2; cursor: pointer; transition: opacity .3s var(--ease); }
+#knee .c-pt.future { opacity: .25; }
+#knee .c-pt.over { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; }
+#knee .cur { fill: var(--surface); stroke: var(--accent); stroke-width: 2.5; transition: transform .45s var(--ease); }
+#knee .lab { font-family: var(--sans); font-size: 11px; fill: var(--ink-2); }
+#knee .lab.strong { fill: var(--ink); font-weight: 600; }
+#knee .ann { stroke: var(--muted); stroke-width: 1; }
+.knee-legend { display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+.knee-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.knee-legend i { width: 16px; height: 2px; border-radius: 1px; display: inline-block; }
+
+/* Method */
+.steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin: 0; padding: 0; list-style: none; }
+.steps li { padding: 20px; display: grid; gap: 10px; align-content: start; }
+.steps .ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.steps h3 { font: 650 21px/1.15 var(--display); letter-spacing: -.02em; margin: 4px 0 0; }
+.steps h3 small { font: 500 12px/1 var(--mono); color: var(--muted); letter-spacing: 0; margin-right: 6px; }
+.steps p { margin: 0; font-size: 14px; color: var(--ink-2); }
+@media (max-width: 900px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .steps { grid-template-columns: minmax(0, 1fr); } }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.two > * { min-width: 0; }
+@media (max-width: 900px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { padding: 24px; }
+.box h2 { font: 650 24px/1.15 var(--display); letter-spacing: -.02em; margin: 6px 0 14px; }
+.limits { margin: 0; padding: 0; list-style: none; display: grid; gap: 11px; }
+.limits li { padding-left: 20px; position: relative; color: var(--ink-2); font-size: 14.5px; }
+.limits li::before { content: ""; position: absolute; left: 2px; top: .62em; width: 7px; height: 7px; border-radius: 2px; background: var(--accent-soft); border: 1px solid var(--accent); }
+.cite { position: relative; }
+.cite pre {
+  margin: 0; padding: 16px 18px; border-radius: 12px; background: var(--chip); color: var(--ink-2);
+  font: 400 12.5px/1.65 var(--mono); overflow-x: auto; white-space: pre;
+}
+.copy {
+  all: unset; cursor: pointer; position: absolute; top: 10px; right: 10px;
+  font: 500 12px/1 var(--sans); padding: 7px 11px; border-radius: 999px; background: var(--surface); color: var(--ink-2);
+  border: 1px solid var(--rule); transition: color .15s var(--ease);
+}
+.copy:hover { color: var(--ink); }
+.copy:focus-visible { outline: 2px solid var(--accent); }
+
+footer { margin-top: 64px; border-top: 1px solid var(--rule); }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 24px; padding-block: 26px 44px; font-size: 13.5px; color: var(--muted); }
+footer p { margin: 0; max-width: 64ch; }
+footer nav { display: flex; gap: 18px; }
+footer a { text-decoration: none; color: var(--ink-2); }
+footer a:hover { color: var(--ink); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation: none !important; }
+  html { scroll-behavior: auto; }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="Circuit Condensation home">
+      <svg width="28" height="28" viewBox="0 0 32 32" aria-hidden="true">
+        <rect x="1" y="1" width="30" height="30" rx="9" fill="var(--accent)"/>
+        <g fill="var(--accent-ink)"><circle cx="9.5" cy="9.5" r="2"/><circle cx="22.5" cy="9.5" r="2"/><circle cx="9.5" cy="22.5" r="2"/><circle cx="16.5" cy="18" r="4.2"/></g>
+      </svg>
+      <b>Circuit Condensation</b>
+    </a>
+    <nav class="nav" aria-label="Links">
+      <a class="txt" href="#demo">Demo</a>
+      <a class="txt" href="https://arxiv.org/abs/2608.27254" target="_blank" rel="noopener">Paper</a>
+      <a class="txt" href="#cite">Cite</a>
+      <a class="icon-btn" href="https://github.com/SAI-ADITH/circuit-condensation" target="_blank" rel="noopener" aria-label="Code on GitHub" title="Code on GitHub">
+        <svg width="17" height="17" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <button class="icon-btn" type="button" id="theme" aria-label="Color theme: system">
+        <svg id="theme-ic" width="17" height="17" viewBox="0 0 16 16" aria-hidden="true"></svg>
+      </button>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="wrap">
+    <div class="hero">
+      <a class="badge" href="https://arxiv.org/abs/2608.27254" target="_blank" rel="noopener"><i></i>Preprint on arXiv · 2608.27254</a>
+      <h1>Post-training can make a behavior's circuit <span class="hl">small enough to check by hand.</span></h1>
+      <p class="lede">A circuit is the set of internal connections a model uses for one behavior. Searching a frozen model for one often returns hundreds of connections, too many to inspect. Circuit Condensation fine-tunes the model while it prunes, so the same behavior runs through a circuit you can test edge by edge.</p>
+      <p class="byline"><b>Sai Adith Senthil Kumar</b> · George Mason University</p>
+      <div class="cta">
+        <a class="btn primary" href="#demo" id="see-run">
+          <svg width="12" height="12" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.8v10.4L12 7z" fill="currentColor"/></svg>
+          Watch it condense
+        </a>
+        <a class="btn" href="https://arxiv.org/abs/2608.27254" target="_blank" rel="noopener">Read the paper</a>
+        <a class="btn" href="https://github.com/SAI-ADITH/circuit-condensation" target="_blank" rel="noopener">Code</a>
+      </div>
+    </div>
+
+    <div class="results">
+      <div class="card res">
+        <div class="k">Smaller circuits</div>
+        <div class="v"><span id="r-gmean">8.1</span>×</div>
+        <div class="bars" aria-hidden="true">
+          <div class="row"><span>Frozen model</span><div class="bar" style="width:100%"></div></div>
+          <div class="row"><span>Condensation</span><div class="bar acc" id="r-bar" style="width:12.3%"></div></div>
+        </div>
+        <p>smaller on average than the strongest frozen-weight method (EAP-IG) at comparable accuracy, and smaller in <span id="r-wins">30</span> of 32 settings.</p>
+      </div>
+      <div class="card res">
+        <div class="k">The weights do the work</div>
+        <div class="v">29 <small>of 32</small></div>
+        <div class="waffle" id="w-29" aria-hidden="true"></div>
+        <p>settings where running the same search with frozen weights ends with a larger circuit.</p>
+      </div>
+      <div class="card res">
+        <div class="k">Checked exhaustively</div>
+        <div class="v">11 <small>of 19</small></div>
+        <div class="waffle" id="w-11" aria-hidden="true"></div>
+        <p>small circuits with no smaller working subset, found by testing 5,952 subsets.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="demo" aria-labelledby="demo-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="label">Interactive demo</p>
+        <h2 id="demo-h">Pick a behavior and a model, then watch its circuit condense</h2>
+        <p>Each round cuts the connections the behavior needs least, then retrains briefly so the rest can take over. All 32 settings from the paper are here.</p>
+      </div>
+
+      <div class="pickers">
+        <div class="pick-row"><span id="lab-task">Behavior</span><div class="chips" id="tasks" role="group" aria-labelledby="lab-task"></div></div>
+        <div class="pick-row"><span id="lab-model">Model</span><div class="chips" id="models" role="group" aria-labelledby="lab-model"></div></div>
+        <div class="pick-row"><span></span><p class="cell-sum" id="cell-sum"></p></div>
+      </div>
+
+      <div class="demo">
+        <figure class="card fig">
+          <div class="fig-top">
+            <h3 id="fig-title">Which connections does the model need?</h3>
+            <div class="seeds">Run
+              <div class="seg" role="group" aria-label="Training seed" id="seeds"></div>
+            </div>
+          </div>
+          <p class="sub" id="fig-sub"></p>
+          <div class="examples">
+            <div class="ex-tabs" role="tablist" aria-label="Example prompts" id="ex-tabs"></div>
+            <div class="prompt" id="prompt" role="tabpanel"></div>
+          </div>
+          <div class="graph-wrap" id="graph-wrap">
+            <svg id="graph-bg" viewBox="0 0 640 620" aria-hidden="true"></svg>
+            <canvas id="edges"></canvas>
+            <svg id="graph" viewBox="0 0 640 620" role="img" aria-label="Circuit graph"></svg>
+            <div class="pop" id="pop" role="status" aria-live="polite"></div>
+          </div>
+          <ul class="legend" id="legend"></ul>
+          <div class="controls">
+            <button class="play" id="play" type="button" aria-label="Play">
+              <svg id="play-ic" width="15" height="15" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 1.8v10.4L12 7z" fill="currentColor"/></svg>
+            </button>
+            <div class="scrub">
+              <input type="range" id="round" min="0" max="1" step="1" value="0" aria-label="Pruning round">
+              <div class="track"><div class="over" id="over"></div><div class="fill" id="fill"></div></div>
+              <div class="stopmark" id="stopmark"></div>
+              <div class="thumb" id="thumb"></div>
+              <div class="scrub-labels" id="scrub-labels"></div>
+            </div>
+            <button class="skip" id="skip" type="button">Final circuit</button>
+          </div>
+          <div class="keys"><span><kbd>←</kbd> <kbd>→</kbd> step</span><span><kbd>Space</kbd> play or pause</span><span><kbd>[</kbd> <kbd>]</kbd> change model</span><span>Click a head or line to inspect it</span></div>
+        </figure>
+
+        <aside class="card panel" aria-live="polite">
+          <span class="state" id="state"><span class="dot"></span><span id="state-t">Original model</span></span>
+          <div class="count">
+            <span class="big" id="count">–</span>
+            <span class="of"><b id="count-unit">connections</b><span id="count-of">all of them on</span></span>
+          </div>
+          <div class="metrics">
+            <div class="metric" id="m-acc"><div class="l">Task accuracy</div><div class="v" id="acc">–</div><div class="n">validation prompts</div></div>
+            <div class="metric" id="m-cap" title="Change in perplexity on a mixed general-text sample, compared with the original model. Lower is better."><div class="l">General text</div><div class="v" id="cap">–</div><div class="n">perplexity change, limit +5%</div></div>
+          </div>
+          <p class="caption" id="caption">Loading the circuit…</p>
+          <div>
+            <div class="knee-head"><h4>Accuracy as connections are removed</h4></div>
+            <svg id="knee" viewBox="0 0 400 236" role="img" aria-label="Accuracy versus number of connections for condensation and for EAP-IG on the frozen model"></svg>
+            <div class="knee-legend">
+              <span><i style="background:var(--accent)"></i>Condensation (weights adapt)</span>
+              <span><i style="background:var(--muted)"></i>EAP-IG on the frozen model</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="sec-head">
+        <p class="label">Method</p>
+        <h2 id="how-h">One round of condensation</h2>
+        <p>Rounds repeat until the next cut would break the behavior or the model's general ability.</p>
+      </div>
+      <ol class="steps">
+        <li class="card">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><g fill="currentColor"><rect x="3" y="11" width="3" height="6" rx="1"/><rect x="8.5" y="7" width="3" height="10" rx="1"/><rect x="14" y="3" width="3" height="14" rx="1"/></g></svg></span>
+          <h3><small>1</small>Rank</h3><p>Score every connection by how much the behavior depends on it, using integrated-gradient attribution (EAP-IG).</p>
+        </li>
+        <li class="card">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="5.5" cy="14.5" r="2.5"/><circle cx="14.5" cy="14.5" r="2.5"/><path d="M7.3 12.7 15 3M12.7 12.7 5 3"/></g></svg></span>
+          <h3><small>2</small>Cut</h3><p>Remove the lowest-scoring connections: 30% per round at first, fewer as the circuit gets small.</p>
+        </li>
+        <li class="card">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 10a6 6 0 1 1-2-4.5"/><path d="M14.5 2.5v3.5H11"/></g></svg></span>
+          <h3><small>3</small>Heal</h3><p>Train a small LoRA adapter so the model matches its original outputs using only what is left.</p>
+        </li>
+        <li class="card">
+          <span class="ic"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10.5 8 14.5 16 5.5"/></g></svg></span>
+          <h3><small>4</small>Check</h3><p>Keep the cut only if task accuracy and perplexity on general text stay within tolerance. Otherwise retry a smaller cut.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="wrap two">
+      <div class="card box">
+        <p class="label">Scope</p>
+        <h2>What it does not show</h2>
+        <ul class="limits">
+          <li>The circuit belongs to the post-trained model. It closely tracks the original model's outputs, but not necessarily exactly.</li>
+          <li>On IOI the result is a sufficient part of the published circuit, not a reconstruction of all of it.</li>
+          <li>Condensation needs training, and it raises perplexity on unseen WikiText-2 text by a median 9%.</li>
+          <li>It is smaller than the frozen baseline in 30 of 32 settings, not all. On docstring the general-text check often stops it early.</li>
+        </ul>
+      </div>
+      <div class="card box" id="cite">
+        <p class="label">Citation</p>
+        <h2>Cite this work</h2>
+        <div class="cite">
+          <pre id="bib">@article{senthilkumar2026condensation,
+  title   = {Circuit Condensation: Post-Training that
+             Concentrates a Behavior's Causal Circuit},
+  author  = {Senthil Kumar, Sai Adith},
+  journal = {arXiv preprint arXiv:2608.27254},
+  year    = {2026}
+}</pre>
+          <button class="copy" id="copy" type="button">Copy</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Every number on this page is read from saved runs in the code repository. Nothing is computed in your browser.</p>
+    <nav aria-label="Footer"><a href="https://arxiv.org/abs/2608.27254" target="_blank" rel="noopener">arXiv</a><a href="https://github.com/SAI-ADITH/circuit-condensation" target="_blank" rel="noopener">GitHub</a></nav>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  // ---------- theme (system -> light -> dark) ----------
+  const root = document.documentElement;
+  const themeBtn = document.getElementById("theme"), themeIc = document.getElementById("theme-ic");
+  const ICONS = {
+    auto: '<circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 2a6 6 0 0 1 0 12z" fill="currentColor"/>',
+    light: '<circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><g stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 1.5v1.5M8 13v1.5M1.5 8H3M13 8h1.5M3.4 3.4l1 1M11.6 11.6l1 1M3.4 12.6l1-1M11.6 4.4l1-1"/></g>',
+    dark: '<path d="M13.5 9.6A5.8 5.8 0 0 1 6.4 2.5a5.8 5.8 0 1 0 7.1 7.1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>',
+  };
+  const THEME_NEXT = { auto: "light", light: "dark", dark: "auto" };
+  const THEME_NAME = { auto: "system", light: "light", dark: "dark" };
+  let theme = "auto";
+  const themeListeners = [];
+  function setTheme(t, save) {
+    theme = ICONS[t] ? t : "auto";
+    if (theme === "auto") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", theme);
+    themeIc.innerHTML = ICONS[theme];
+    themeBtn.setAttribute("aria-label", "Color theme: " + THEME_NAME[theme]);
+    themeBtn.title = "Theme: " + THEME_NAME[theme];
+    if (save) { try { localStorage.setItem("cc-theme", theme); } catch (e) {} }
+    themeListeners.forEach(f => f());
+  }
+  try { theme = localStorage.getItem("cc-theme") || "auto"; } catch (e) {}
+  setTheme(theme, false);
+  themeBtn.addEventListener("click", () => setTheme(THEME_NEXT[theme], true));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => themeListeners.forEach(f => f()));
+
+  // ---------- citation copy ----------
+  const copyBtn = document.getElementById("copy");
+  copyBtn.addEventListener("click", () => {
+    const text = document.getElementById("bib").textContent;
+    const done = () => { copyBtn.textContent = "Copied"; setTimeout(() => (copyBtn.textContent = "Copy"), 1600); };
+    const fallback = () => {
+      const r = document.createRange(); r.selectNodeContents(document.getElementById("bib"));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(r); copyBtn.textContent = "Selected";
+    };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (e) { fallback(); }
+  });
+
+  // ---------- result waffles ----------
+  function waffle(id, onCount, n) {
+    const el = document.getElementById(id);
+    for (let i = 0; i < n; i++) {
+      const c = document.createElement("i");
+      if (i < onCount) { c.className = "on"; c.style.animationDelay = (0.25 + i * 0.025) + "s"; }
+      el.appendChild(c);
+    }
+  }
+  waffle("w-29", 29, 32);
+  waffle("w-11", 11, 19);
+
+  // ---------- helpers ----------
+  const fmt = d3.format(",");
+  const pct = v => (v * 100).toFixed(1) + "%";
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const css = name => getComputedStyle(root).getPropertyValue(name).trim();
+  const ratioTxt = r => (r >= 10 ? Math.round(r) : r.toFixed(1)) + "×";
+  const conn = n => fmt(n) + (n === 1 ? " connection" : " connections");
+  const $ = id => document.getElementById(id);
+  const ROLE_LABEL = {
+    name_mover: "Name mover", backup_name_mover: "Backup name mover", negative_name_mover: "Negative name mover",
+    s_inhibition: "S-inhibition", induction: "Induction", duplicate_token: "Duplicate token", previous_token: "Previous token",
+  };
+  const GROUP_LABEL = { detect: "Find the repeated name", inhibit: "Suppress it", move: "Copy the other name" };
+  const TASK_UI = {
+    ioi: { q: "Which connections does the model need to pick the right name?", what: "the right name" },
+    agreement: { q: "Which connections does the model need to make the verb agree?", what: "the right verb form" },
+    induction: { q: "Which connections does the model need to continue the pattern?", what: "the repeated word" },
+    doc: { q: "Which connections does the model need to name the next parameter?", what: "the right parameter name" },
+  };
+  function nice(name) {
+    if (name === "embed") return "Embeddings";
+    if (name === "logits") return "Output";
+    const p = name.split("_");
+    if (p[0] === "mlp") return "MLP " + p[1];
+    if (p.length === 3) return "L" + p[1] + ".H" + p[2].slice(1);
+    return "Layer " + p[1] + " attention";
+  }
+
+  // ---------- DOM ----------
+  const wrap = $("graph-wrap"), svgEl = $("graph"), bgEl = $("graph-bg"), canvas = $("edges"), ctx = canvas.getContext("2d");
+  const svg = d3.select(svgEl), bg = d3.select(bgEl);
+  const input = $("round"), pop = $("pop"), capEl = $("caption");
+
+  // ---------- state ----------
+  const cache = new Map();
+  const qs = new URLSearchParams(location.search);
+  let INDEX, D, G, run, seed, last, cur = 0, stopIdx = 0, lastIdx = 0, exIdx = 0;
+  let timer = null, pinned = null, restGroups = null, anim = null, focusSet = null, prevRound = null;
+  let curTask = "ioi", curModel = "gpt2", nodeSel = null, outPill = null;
+
+  fetch("data/index.json").then(r => r.json()).then(idx => {
+    INDEX = idx;
+    $("r-gmean").textContent = idx.gmean.toFixed(1);
+    $("r-wins").textContent = idx.wins;
+    $("r-bar").style.width = (100 / idx.gmean).toFixed(1) + "%";
+    buildPickers();
+    const want = qs.get("cell");
+    const cell = idx.cells.find(c => c.task + "_" + c.model === want) || idx.cells.find(c => c.task === "ioi" && c.model === "gpt2");
+    const r = parseInt(qs.get("r"), 10), ex = parseInt(qs.get("ex"), 10);
+    loadCell(cell.task, cell.model, { seed: qs.get("seed"), round: isNaN(r) ? 0 : r, ex: isNaN(ex) ? 0 : ex, autoplay: false });
+    setupAutoplay(!isNaN(r));
+  }).catch(err => { capEl.textContent = "Could not load the circuit data (" + err.message + ")."; });
+
+  // ---------- pickers ----------
+  const cellOf = (t, m) => INDEX.cells.find(c => c.task === t && c.model === m);
+  function buildPickers() {
+    INDEX.tasks.forEach(t => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip-btn"; b.dataset.task = t.id; b.textContent = t.label; b.title = t.blurb;
+      b.addEventListener("click", () => { if (t.id !== curTask) loadCell(t.id, curModel, { autoplay: true }); });
+      $("tasks").appendChild(b);
+    });
+    INDEX.models.forEach(m => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "chip-btn"; b.dataset.model = m.id; b.title = m.label;
+      b.innerHTML = `${esc(m.short)}<small></small>`;
+      b.addEventListener("click", () => { if (m.id !== curModel) loadCell(curTask, m.id, { autoplay: true }); });
+      $("models").appendChild(b);
+    });
+  }
+  function markPickers() {
+    document.querySelectorAll("#tasks .chip-btn").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.task === curTask)));
+    document.querySelectorAll("#models .chip-btn").forEach(b => {
+      b.setAttribute("aria-pressed", String(b.dataset.model === curModel));
+      const c = cellOf(curTask, b.dataset.model), s = b.querySelector("small");
+      s.textContent = ratioTxt(c.ratio);
+      s.classList.toggle("lose", c.ratio < 1);
+      b.setAttribute("aria-label", `${b.title}: condensed circuit ${c.ratio < 1 ? "larger than" : ratioTxt(c.ratio) + " smaller than"} the frozen baseline`);
+    });
+    const c = cellOf(curTask, curModel), m = INDEX.models.find(x => x.id === curModel);
+    $("cell-sum").innerHTML = c.ratio >= 1
+      ? `On ${esc(m.label)}, the condensed circuit has a median of <b>${fmt(c.condensed)}</b> connections versus <b>${fmt(c.frozen)}</b> for the frozen-model search (3 runs). The small number on each model is how many times smaller.`
+      : `On ${esc(m.label)}, condensation does not win: the frozen-model search finds smaller circuits (median <b>${fmt(c.frozen)}</b> versus <b>${fmt(c.condensed)}</b>). This is one of the 2 settings out of 32 where that happens.`;
+  }
+
+  async function loadCell(task, model, opt = {}) {
+    pause(); unpin();
+    curTask = task; curModel = model;
+    markPickers();
+    const id = task + "_" + model;
+    if (!cache.has(id)) cache.set(id, fetch("data/" + id + ".json").then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }));
+    let data;
+    try { data = await cache.get(id); }
+    catch (e) { cache.delete(id); capEl.textContent = "Could not load this circuit (" + e.message + ")."; return; }
+    if (curTask !== task || curModel !== model) return;  // a newer pick won
+    D = data;
+    try { G = buildGraph(D); } catch (e) { capEl.textContent = "This circuit's data did not match its graph (" + e.message + ")."; return; }
+    seed = D.runs[opt.seed] ? String(opt.seed) : String(D.default_seed);
+    exIdx = Math.max(0, Math.min(D.examples.length - 1, opt.ex || 0));
+    prevRound = null; restGroups = null; anim = null;
+    buildSeeds(); prepSeed(); drawStatic(); renderExample(); buildScrub(); drawKnee();
+    $("fig-title").textContent = TASK_UI[D.task].q;
+    $("fig-sub").textContent = `${D.model_label}: ${fmt(D.n_layers * D.n_heads)} attention heads (dots) and ${D.n_layers} MLPs (squares) in ${D.n_layers} layers. Each line is a connection the behavior still uses. Lines end at the output, at an MLP, or at a later layer's attention input on the left edge.`;
+    setRound(Math.max(0, Math.min(lastIdx, opt.round || 0)), true);
+    if (opt.autoplay && !reduced) setTimeout(() => { if (!timer && D.id === id) play(); }, 400);
+  }
+
+  // ---------- graph structure (mirrors ilm/masking/graph.py CircuitGraph, head granularity) ----------
+  function buildGraph(D) {
+    const NL = D.n_layers, NH = D.n_heads;
+    const writers = ["embed"], wOrd = [-1];
+    for (let i = 0; i < NL; i++) {
+      for (let j = 0; j < NH; j++) { writers.push(`attn_${i}_h${j}`); wOrd.push(2 * i); }
+      writers.push(`mlp_${i}`); wOrd.push(2 * i + 1);
+    }
+    const readers = [], rOrd = [];
+    for (let i = 0; i < NL; i++) { readers.push(`attn_${i}`, `mlp_${i}`); rOrd.push(2 * i, 2 * i + 1); }
+    readers.push("logits"); rOrd.push(Infinity);
+    const ewA = [], erA = [];
+    readers.forEach((r, ri) => writers.forEach((w, wi) => { if (wOrd[wi] < rOrd[ri]) { ewA.push(wi); erA.push(ri); } }));
+    const NE = ewA.length, ew = Int32Array.from(ewA), er = Int32Array.from(erA);
+    if (NE !== D.n_edges || !D.check.every(([i, w, r]) => writers[ew[i]] === w && readers[er[i]] === r)) throw new Error("edge order mismatch");
+
+    // geometry in viewBox units (640 wide); the height follows the layer count
+    const VBW = 640, top = 92, portX = 54, area0 = 96, areaW = 440;
+    const dy = Math.min(40.5, 470 / Math.max(1, NL - 1));
+    const VBH = Math.round(top + (NL - 1) * dy + 62);
+    const dx = NH > 1 ? Math.min(60, areaW / (NH - 1)) : 0;
+    const x0 = area0 + (areaW - dx * (NH - 1)) / 2;
+    const mlpX = area0 + areaW + 48, midX = area0 + areaW / 2;
+    const pillY = 34, embedY = VBH - 24;
+    const rowY = l => top + (NL - 1 - l) * dy;
+    const headX = h => x0 + h * dx;
+    const r = Math.max(3.6, Math.min(5.5, dx * 0.22, dy * 0.32));
+    const wx = new Float32Array(writers.length), wy = new Float32Array(writers.length);
+    writers.forEach((w, i) => {
+      if (w === "embed") { wx[i] = midX; wy[i] = embedY - 11; return; }
+      const p = w.split("_");
+      wy[i] = rowY(+p[1]); wx[i] = p[0] === "mlp" ? mlpX : headX(+p[2].slice(1));
+    });
+    const rx = new Float32Array(readers.length), ry = new Float32Array(readers.length), rk = new Uint8Array(readers.length);
+    readers.forEach((n, i) => {
+      if (n === "logits") { rx[i] = midX; ry[i] = pillY + 11; rk[i] = 0; return; }
+      const p = n.split("_");
+      ry[i] = rowY(+p[1]);
+      if (p[0] === "mlp") { rx[i] = mlpX; rk[i] = 1; } else { rx[i] = portX; rk[i] = 2; }
+    });
+    const C = new Float32Array(NE * 8);
+    for (let e = 0; e < NE; e++) {
+      const x1 = wx[ew[e]], y1 = wy[ew[e]], x2 = rx[er[e]], y2 = ry[er[e]], k = rk[er[e]];
+      let c1y, c2x = x2, c2y;
+      if (k === 2) {
+        c1y = y1 - Math.min(70, (y1 - y2) * 0.55 + 10);
+        c2x = x2 + Math.max(18, (x1 - x2) * 0.4); c2y = y2 + Math.min(26, (y1 - y2) * 0.35);
+      } else if (k === 1 && Math.abs(y1 - y2) < 1) {
+        const lift = 12 + Math.abs(x2 - x1) * 0.08; c1y = y1 - lift; c2y = y2 - lift;
+      } else {
+        const kk = (y1 - y2) * 0.5; c1y = y1 - kk; c2y = y2 + kk;
+      }
+      const o = e * 8;
+      C[o] = x1; C[o + 1] = y1; C[o + 2] = x1; C[o + 3] = c1y; C[o + 4] = c2x; C[o + 5] = c2y; C[o + 6] = x2; C[o + 7] = y2;
+    }
+    const byWriter = new Map(), byReader = new Map();
+    for (let e = 0; e < NE; e++) {
+      (byWriter.get(ew[e]) || byWriter.set(ew[e], []).get(ew[e])).push(e);
+      (byReader.get(er[e]) || byReader.set(er[e], []).get(er[e])).push(e);
+    }
+    const mlpReader = new Map(), mlpWriter = new Map();
+    readers.forEach((n, i) => { if (n.startsWith("mlp")) mlpReader.set(writers.indexOf(n), i); });
+    readers.forEach((n, i) => { if (n.startsWith("mlp")) mlpWriter.set(i, writers.indexOf(n)); });
+    return { NL, NH, NE, writers, readers, ew, er, C, VBW, VBH, portX, mlpX, midX, pillY, embedY, rowY, headX, r, dy, byWriter, byReader, mlpReader, mlpWriter };
+  }
+
+  function prepSeed() {
+    run = D.runs[seed];
+    const bin = atob(run.last);
+    last = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) last[i] = bin.charCodeAt(i);
+    stopIdx = run.endpoint;
+    lastIdx = run.rounds.length - 1;
+  }
+  const on = (e, i) => last[e] >= i;
+
+  // ---------- static layers ----------
+  function drawStatic() {
+    const { NL, VBW, VBH } = G;
+    [bgEl, svgEl].forEach(el => el.setAttribute("viewBox", `0 0 ${VBW} ${VBH}`));
+    bg.selectAll("*").remove(); svg.selectAll("*").remove();
+    svg.classed("plain", !Object.keys(D.roles).length);
+    const step = NL <= 16 ? 1 : NL <= 28 ? 3 : 4;
+    for (let l = 0; l < NL; l++) {
+      const y = G.rowY(l);
+      bg.append("line").attr("class", "row-line").attr("x1", G.portX).attr("x2", G.mlpX + 12).attr("y1", y).attr("y2", y);
+      if (l % step === 0 || l === NL - 1) bg.append("text").attr("class", "row-label").attr("x", 12).attr("y", y + 3.5).text("L" + l);
+    }
+
+    svg.append("g").attr("class", "hits");
+    const gPorts = svg.append("g");
+    for (let l = 0; l < NL; l++) gPorts.append("circle").attr("class", "port").attr("cx", G.portX).attr("cy", G.rowY(l)).attr("r", Math.min(3, G.dy * 0.22));
+    outPill = pill("out", G.midX, G.pillY, "output");
+    pill("in", G.midX, G.embedY, "token embeddings");
+
+    const nodes = [];
+    G.writers.forEach((w, i) => {
+      if (w === "embed") return;
+      const p = w.split("_"), mlp = p[0] === "mlp";
+      nodes.push({ i, name: w, mlp, x: mlp ? G.mlpX : G.headX(+p[2].slice(1)), y: G.rowY(+p[1]) });
+    });
+    nodeSel = svg.append("g").selectAll("g.node").data(nodes).join("g")
+      .attr("class", d => "node idle" + (d.mlp ? " mlp" : D.roles[d.name] ? " r-" + D.roles[d.name].group : ""))
+      .attr("transform", d => `translate(${d.x},${d.y})`);
+    nodeSel.each(function (d) {
+      const g = d3.select(this);
+      if (d.mlp) { const s = Math.max(4.2, G.r * 1.1); g.append("rect").attr("class", "dot").attr("x", -s).attr("y", -s).attr("width", 2 * s).attr("height", 2 * s).attr("rx", s * 0.35); }
+      else g.append("circle").attr("class", "dot").attr("r", G.r).style("stroke-width", Math.min(1.4, G.r * 0.3));
+    });
+    nodeSel.on("mouseenter", (ev, d) => { if (!pinned) inspectNode(d, false); })
+      .on("mouseleave", () => { if (!pinned) unfocus(); })
+      .on("click", (ev, d) => { ev.stopPropagation(); pause(); if (nodeEdges(d.i).length) inspectNode(d, true); else unpin(); });
+
+    $("legend").innerHTML = Object.keys(D.roles).length
+      ? '<li><span class="sw detect"></span>Find the repeated name</li><li><span class="sw inhibit"></span>Suppress it</li><li><span class="sw move"></span>Copy the other name</li><li><span class="sw none"></span>No documented role</li><li><span class="sw mlp"></span>MLP</li><li class="src">Head roles from Wang et al. (2023)</li>'
+      : '<li><span class="sw head"></span>Attention head</li><li><span class="sw mlp"></span>MLP</li><li><span class="sw line"></span>Connection</li><li class="src">On the final circuit, thicker lines matter more</li>';
+    resizeCanvas();
+  }
+
+  function pill(cls, x, y, text) {
+    const g = svg.append("g").attr("class", "pill " + cls);
+    const rect = g.append("rect");
+    const t = g.append("text").attr("x", x).attr("text-anchor", "middle").text(text);
+    const size = () => {  // re-measured when the text or the web fonts change
+      const fs = parseFloat(getComputedStyle(t.node()).fontSize) || 11, ph = fs + 11;
+      const w = Math.max(70, t.node().getComputedTextLength() + 2 * fs);
+      t.attr("y", y + fs * 0.36);
+      rect.attr("x", x - w / 2).attr("y", y - ph / 2).attr("width", w).attr("height", ph).attr("rx", ph / 2);
+    };
+    size();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);
+    return { set: s => { t.text(s); size(); } };
+  }
+
+  // ---------- examples ----------
+  function renderExample() {
+    const tabs = $("ex-tabs");
+    tabs.innerHTML = "";
+    D.examples.forEach((ex, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.setAttribute("role", "tab"); b.id = "ex-" + i;
+      b.setAttribute("aria-selected", String(i === exIdx)); b.textContent = "Example " + (i + 1);
+      b.addEventListener("click", () => { exIdx = i; renderExample(); syncURL(); });
+      tabs.appendChild(b);
+    });
+    const note = document.createElement("span");
+    note.className = "note"; note.textContent = "The same circuit serves every prompt of this behavior";
+    tabs.appendChild(note);
+    const ex = D.examples[exIdx], ans = ex.answer.trim();
+    let body;
+    if (D.task === "induction") {
+      const w = ex.prompt.trim().split(/\s+/), trig = w[w.length - 1];
+      body = w.map((x, i) => {
+        if (i === w.length - 1) return `<span class="trig">${esc(x)}</span>`;
+        if ((x === trig && w[i + 1] === ans) || (x === ans && w[i - 1] === trig)) return `<mark>${esc(x)}</mark>`;
+        return esc(x);
+      }).join(" ");
+    } else if (D.task === "doc") {
+      body = `<pre>${esc(ex.prompt)}</pre>`;
+    } else if (D.task === "agreement") {
+      body = ex.prompt.split(" ").map((x, i) => (i === 1 ? `<mark>${esc(x)}</mark>` : esc(x))).join(" ");
+    } else {
+      body = esc(ex.prompt);
+    }
+    $("prompt").innerHTML = body + `<span class="arrow">→</span><span class="ans">${esc(ans)}</span>` +
+      (ex.foil ? `<span class="foil">not ${esc(ex.foil.trim())}</span>` : "");
+    $("prompt").setAttribute("aria-labelledby", "ex-" + exIdx);
+    outPill.set("output → " + ans);
+  }
+
+  // ---------- seeds ----------
+  function buildSeeds() {
+    const sw = $("seeds");
+    sw.innerHTML = "";
+    Object.keys(D.runs).forEach(s => {
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = s; b.dataset.seed = s; b.setAttribute("aria-label", "Seed " + s);
+      b.setAttribute("aria-pressed", String(s === seed));
+      b.addEventListener("click", () => switchSeed(s));
+      sw.appendChild(b);
+    });
+  }
+  function switchSeed(s) {
+    if (s === seed) return;
+    pause(); unpin();
+    const atEnd = cur === stopIdx;
+    seed = s; prepSeed();
+    [...$("seeds").children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.seed === seed)));
+    buildScrub(); drawKnee();
+    prevRound = null; restGroups = null;
+    setRound(atEnd ? stopIdx : Math.min(cur, lastIdx), true);
+  }
+
+  // ---------- canvas edges ----------
+  let scale = 1, dpr = 1;
+  function resizeCanvas() {
+    const w = wrap.clientWidth;
+    if (!w || !G) return;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    const h = w * G.VBH / G.VBW;
+    canvas.style.width = w + "px"; canvas.style.height = h + "px";
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    scale = (w / G.VBW) * dpr;
+    drawRest();
+  }
+  new ResizeObserver(() => resizeCanvas()).observe(wrap);
+  themeListeners.push(() => drawRest());
+
+  const edgeOpacity = n => Math.max(0.012, Math.min(0.85, 0.8 * Math.pow(60 / n, 0.75)));
+  function necW(e, i) {
+    if (i < stopIdx || !run.necessity) return 1;
+    const v = run.necessity[String(e)];
+    if (v === undefined) return 1;
+    return 1.1 + 3.2 * Math.sqrt(Math.max(0, Math.min(1, v / run.base_margin)));
+  }
+  function pathOf(list) {
+    const p = new Path2D(), C = G.C;
+    for (const e of list) {
+      const o = e * 8;
+      p.moveTo(C[o], C[o + 1]); p.bezierCurveTo(C[o + 2], C[o + 3], C[o + 4], C[o + 5], C[o + 6], C[o + 7]);
+    }
+    return p;
+  }
+  function bucketed(list, i) {
+    const by = new Map();
+    for (const e of list) { const w = Math.round(necW(e, i) * 4) / 4; (by.get(w) || by.set(w, []).get(w)).push(e); }
+    return [...by].map(([w, es]) => ({ w, path: pathOf(es) }));
+  }
+  function clearCanvas() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.setTransform(scale, 0, 0, scale, 0, 0); ctx.lineCap = "round";
+  }
+  function strokeGroups(groups, color, alpha, extra = 0) {
+    ctx.strokeStyle = color; ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+    const minW = 0.75 * dpr / scale;
+    for (const g of groups) { ctx.lineWidth = Math.max(minW, g.w + extra); ctx.stroke(g.path); }
+  }
+  function activeList(i) { const out = []; for (let e = 0; e < G.NE; e++) if (last[e] >= i) out.push(e); return out; }
+  function drawRest() {
+    if (!G || !run || anim) return;
+    if (!restGroups) { const list = activeList(cur); restGroups = { groups: bucketed(list, cur), list, op: edgeOpacity(run.rounds[cur].n) }; }
+    clearCanvas();
+    if (focusSet) {
+      strokeGroups(restGroups.groups, css("--edge"), Math.min(restGroups.op, 0.06));
+      strokeGroups(bucketed([...focusSet], cur), css("--ink"), 0.95, 0.4);
+    } else {
+      strokeGroups(restGroups.groups, css("--edge"), restGroups.op);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // Each transition paints the surviving and the cut edges once into two offscreen
+  // layers, then every frame only fades those two bitmaps: cheap even at 44k edges.
+  const layerKeep = document.createElement("canvas"), layerGone = document.createElement("canvas");
+  function paintLayer(layer, groups, color, alpha) {
+    layer.width = canvas.width; layer.height = canvas.height;
+    const c = layer.getContext("2d");
+    c.setTransform(scale, 0, 0, scale, 0, 0); c.lineCap = "round"; c.strokeStyle = color; c.globalAlpha = alpha;
+    const minW = 0.75 * dpr / scale;
+    for (const g of groups) { c.lineWidth = Math.max(minW, g.w); c.stroke(g.path); }
+  }
+  function animateEdges(from, to, dur) {
+    const keep = [], gone = [];
+    for (let e = 0; e < G.NE; e++) {
+      const a = last[e] >= from, b = last[e] >= to;
+      if (b) keep.push(e); else if (a) gone.push(e);
+    }
+    const opA = edgeOpacity(run.rounds[from].n), opB = edgeOpacity(run.rounds[to].n);
+    const kg = bucketed(keep, to);
+    restGroups = { groups: kg, list: keep, op: opB };
+    if (dur <= 0 || reduced) { anim = null; drawRest(); return; }
+    paintLayer(layerKeep, kg, css("--edge"), opB);
+    const goneOp = Math.max(opA, 0.22) * (gone.length > 3000 ? 0.6 : 1);
+    if (gone.length) paintLayer(layerGone, [{ w: 1, path: pathOf(gone) }], css("--cut"), goneOp);
+    const t0 = performance.now(), token = {}, ease = d3.easeCubicInOut;
+    const kFrom = to > from ? Math.min(1, opA / opB) : 0;  // backwards steps fade the restored edges in
+    anim = token;
+    const frame = now => {
+      if (anim !== token) return;
+      const t = Math.min(1, (now - t0) / dur), k = ease(t);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.globalAlpha = kFrom + (1 - kFrom) * k;
+      ctx.drawImage(layerKeep, 0, 0);
+      if (gone.length) { ctx.globalAlpha = 1 - ease(Math.max(0, (t - 0.12) / 0.88)); ctx.drawImage(layerGone, 0, 0); }
+      ctx.globalAlpha = 1;
+      if (t < 1) requestAnimationFrame(frame); else { anim = null; drawRest(); }
+    };
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- hits, popover ----------
+  function bez(e, t) {
+    const C = G.C, o = e * 8, u = 1 - t;
+    return [u * u * u * C[o] + 3 * u * u * t * C[o + 2] + 3 * u * t * t * C[o + 4] + t * t * t * C[o + 6],
+            u * u * u * C[o + 1] + 3 * u * u * t * C[o + 3] + 3 * u * t * t * C[o + 5] + t * t * t * C[o + 7]];
+  }
+  function dOf(e) { const C = G.C, o = e * 8; return `M${C[o]},${C[o + 1]}C${C[o + 2]},${C[o + 3]} ${C[o + 4]},${C[o + 5]} ${C[o + 6]},${C[o + 7]}`; }
+  function buildHits() {
+    const g = svg.select("g.hits");
+    g.selectAll("*").remove();
+    const list = restGroups ? restGroups.list : [];
+    if (list.length > 600) return;  // dense rounds: inspect heads instead of single lines
+    g.selectAll("path").data(list).join("path").attr("class", "hit").attr("d", dOf)
+      .on("mouseenter", (ev, e) => { if (!pinned) inspectEdge(e, false); })
+      .on("mouseleave", () => { if (!pinned) unfocus(); })
+      .on("click", (ev, e) => { ev.stopPropagation(); pause(); inspectEdge(e, true); });
+  }
+  function placePop(x, y) {
+    const box = wrap.getBoundingClientRect(), s = box.width / G.VBW;
+    const pw = Math.min(264, box.width - 16);
+    let px = x * s + 14, py = y * s + 10;
+    if (px + pw > box.width - 8) px = x * s - pw - 14;
+    if (px < 8) px = 8;
+    if (py + 160 > box.height) py = Math.max(8, y * s - 160);
+    pop.style.left = px + "px"; pop.style.top = py + "px";
+  }
+  function roleLine(name) {
+    if (!Object.keys(D.roles).length || !name.startsWith("attn")) return "";
+    const r = D.roles[name];
+    if (!r) return '<div class="role"><span class="sw none"></span>No documented role</div>';
+    return `<div class="role"><span class="sw ${r.group}"></span>${ROLE_LABEL[r.role]} · ${GROUP_LABEL[r.group].toLowerCase()}</div>`;
+  }
+  function edgeHTML(e) {
+    const wn = G.writers[G.ew[e]], rn = G.readers[G.er[e]];
+    let h = `<div class="t">${nice(wn)} → ${nice(rn)}</div>` + roleLine(wn);
+    if (cur >= stopIdx) {
+      const v = run.necessity ? run.necessity[String(e)] : undefined;
+      if (v !== undefined) {
+        const f = v / run.base_margin, p = Math.round(f * 100), w = Math.max(0, Math.min(1, f)) * 100, what = TASK_UI[D.task].what;
+        let msg;
+        if (f >= 0.95) msg = `Removing only this connection <span class="k">erases</span> the model's preference for ${what}.`;
+        else if (f >= 0.03) msg = `Removing only this connection cuts the model's preference for ${what} by <span class="k">${p}%</span>.`;
+        else msg = `Removing only this connection barely changes the answer (<span class="k">${p >= 0 ? p : "+" + -p}%</span>). It matters together with others.`;
+        h += `<div class="meter"><i style="width:${w}%"></i></div><p>${msg}</p>`;
+      } else {
+        h += `<p>This run was not part of the single-connection tests, so there is no per-connection number for it.</p>`;
+      }
+    } else {
+      h += `<p>Still in the circuit at this round. Step to the final circuit to see how much the answer needs it.</p>`;
+    }
+    return h;
+  }
+  function nodeEdges(wi) {
+    const out = (G.byWriter.get(wi) || []).filter(e => on(e, cur));
+    if (G.mlpReader.has(wi)) (G.byReader.get(G.mlpReader.get(wi)) || []).forEach(e => { if (on(e, cur)) out.push(e); });
+    return out;
+  }
+  function showPop(html, x, y) { pop.innerHTML = html; placePop(x, y); pop.classList.add("show"); }
+  function unfocus() { focusSet = null; svg.classed("focus", false); if (nodeSel) nodeSel.classed("hl sel", false); pop.classList.remove("show"); drawRest(); }
+  function focus(list) {
+    focusSet = new Set(list);
+    const ids = new Set();
+    list.forEach(e => { ids.add(G.ew[e]); if (G.mlpWriter.has(G.er[e])) ids.add(G.mlpWriter.get(G.er[e])); });
+    svg.classed("focus", true);
+    nodeSel.classed("hl", d => ids.has(d.i));
+    drawRest();
+  }
+  function inspectEdge(e, pin) {
+    focus([e]);
+    const [x, y] = bez(e, 0.5);
+    showPop(edgeHTML(e), x, y);
+    if (pin) pinned = { type: "edge", e };
+  }
+  function inspectNode(d, pin) {
+    const list = nodeEdges(d.i);
+    if (!list.length) return;
+    focus(list);
+    nodeSel.classed("sel", n => n.i === d.i);
+    showPop(`<div class="t">${nice(d.name)}</div>` + roleLine(d.name) +
+      `<p><span class="k">${fmt(list.length)}</span> connection${list.length === 1 ? "" : "s"} in or out at this round.</p>`, d.x, d.y);
+    if (pin) pinned = { type: "node", d };
+  }
+  function unpin() { pinned = null; if (G) unfocus(); }
+  svgEl.addEventListener("click", unpin);
+  document.addEventListener("click", ev => { if (pinned && !wrap.contains(ev.target)) unpin(); });
+
+  // ---------- scrubber ----------
+  const frac = i => (lastIdx ? i / lastIdx : 0);
+  function buildScrub() {
+    input.max = lastIdx;
+    $("over").style.width = `calc(100% * ${1 - frac(stopIdx)})`;
+    $("stopmark").style.left = `calc(8px + (100% - 16px) * ${frac(stopIdx)})`;
+    const fs = frac(stopIdx);
+    $("scrub-labels").innerHTML =
+      `<span class="l" style="left:0">${fmt(run.rounds[0].n)}</span>` +
+      `<span class="stop-l${fs > 0.8 ? " r" : ""}" style="left:${fs * 100}%">stop · ${fmt(run.rounds[stopIdx].n)}</span>` +
+      (stopIdx < lastIdx && fs < 0.8 ? `<span class="r" style="left:100%">${fmt(run.rounds[lastIdx].n)}</span>` : "");
+  }
+  input.addEventListener("input", () => { pause(); setRound(+input.value); });
+
+  // ---------- knee ----------
+  const K = { w: 400, h: 236, ml: 34, mr: 14, mt: 12, mb: 32 };
+  const knee = d3.select("#knee");
+  let kx, ky, kDyn;
+  function drawKnee() {
+    knee.selectAll("*").remove();
+    const fz = D.frozen[seed] || [];
+    const lo = Math.max(0.6, Math.min(...run.rounds.map(r => r.n)) * 0.6);
+    kx = d3.scaleLog().domain([D.n_edges, lo]).range([K.ml, K.w - K.mr]);
+    const fzv = fz.filter(p => p[0] >= lo);
+    const accs = run.rounds.map(r => r.acc).concat(fzv.map(p => p[1]));
+    const yMin = Math.max(0, Math.min(0.4, Math.floor((Math.min(...accs) - 0.04) * 10) / 10));
+    ky = d3.scaleLinear().domain([yMin, 1.0]).range([K.h - K.mb, K.mt]);
+    const kg = knee.append("g");
+    ky.ticks(5).forEach(v => {
+      kg.append("line").attr("class", "gridline").attr("x1", K.ml).attr("x2", K.w - K.mr).attr("y1", ky(v)).attr("y2", ky(v));
+      kg.append("text").attr("x", K.ml - 6).attr("y", ky(v) + 3).attr("text-anchor", "end").text(Math.round(v * 100) + "%");
+    });
+    if ((D.task === "ioi" || D.task === "agreement") && yMin < 0.5) kg.append("text").attr("x", K.ml + 4).attr("y", ky(0.5) - 4).text("chance");
+    kg.append("line").attr("class", "baseline").attr("x1", K.ml).attr("x2", K.w - K.mr).attr("y1", K.h - K.mb).attr("y2", K.h - K.mb);
+    [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000].filter(v => v <= D.n_edges && v >= lo).forEach(v =>
+      kg.append("text").attr("x", kx(v)).attr("y", K.h - K.mb + 14).attr("text-anchor", "middle").text(v >= 1000 ? v / 1000 + "k" : v));
+    kg.append("text").attr("x", (K.ml + K.w - K.mr) / 2).attr("y", K.h - 2).attr("text-anchor", "middle").text("connections kept (log scale) →");
+    kDyn = knee.append("g");
+    const line = d3.line().x(d => kx(d[0])).y(d => ky(Math.max(yMin, d[1])));
+    kDyn.append("path").attr("class", "f-line").attr("d", line(fzv));
+    const pts = run.rounds.map((r, i) => [r.n, r.acc, i]);
+    kDyn.append("path").attr("class", "c-future").attr("d", line(pts));
+    kDyn.append("path").attr("class", "c-line").attr("id", "c-line");
+    // the two selected circuits, labels staggered so they never collide
+    const fe = run.frozen_eapig, ep = run.rounds[stopIdx], yBot = K.h - K.mb - 6;
+    const label = (x, yPt, drop, txt, strong) => {
+      const yLab = Math.min(yBot, yPt + drop), anchor = x < K.ml + 80 ? "start" : "end", dx = anchor === "end" ? -4 : 4;
+      kDyn.append("line").attr("class", "ann").attr("x1", x).attr("x2", x).attr("y1", yPt + 6).attr("y2", yLab + 3);
+      kDyn.append("text").attr("class", "lab" + (strong ? " strong" : "")).attr("x", x + dx).attr("y", yLab).attr("text-anchor", anchor).text(txt);
+    };
+    const fpt = fz.find(p => p[0] === fe.edges);
+    if (fpt && fpt[0] >= lo) {
+      kDyn.append("circle").attr("cx", kx(fpt[0])).attr("cy", ky(Math.max(yMin, fpt[1]))).attr("r", 4).attr("fill", "var(--muted)").attr("stroke", "var(--surface)").attr("stroke-width", 2);
+      label(kx(fpt[0]), ky(Math.max(yMin, fpt[1])), 50, `frozen: ${fmt(fpt[0])}`, false);
+    }
+    label(kx(ep.n), ky(Math.max(yMin, ep.acc)), 26, `condensed: ${fmt(ep.n)}`, true);
+    kDyn.selectAll("circle.c-pt").data(pts).join("circle")
+      .attr("class", d => "c-pt" + (d[2] > stopIdx ? " over" : ""))
+      .attr("cx", d => kx(d[0])).attr("cy", d => ky(Math.max(yMin, d[1]))).attr("r", pts.length > 30 ? 2.6 : 3.4)
+      .on("click", (ev, d) => { pause(); setRound(d[2]); });
+    kDyn.append("circle").attr("class", "cur").attr("r", 6);
+    kDyn.yMin = yMin; kDyn.line = line;
+  }
+  function updateKnee() {
+    kDyn.select("#c-line").attr("d", kDyn.line(run.rounds.slice(0, cur + 1).map(r => [r.n, r.acc])));
+    kDyn.selectAll("circle.c-pt").classed("future", d => d[2] > cur);
+    const r = run.rounds[cur];
+    kDyn.select("circle.cur").style("transform", `translate(${kx(r.n)}px, ${ky(Math.max(kDyn.yMin, r.acc))}px)`);
+  }
+
+  // ---------- one round ----------
+  let capTimer = null;
+  function setRound(i, instant) {
+    i = Math.max(0, Math.min(lastIdx, i));
+    const from = prevRound === null || instant ? i : cur;
+    cur = i;
+    focusSet = null;
+    if (from === i) { restGroups = null; drawRest(); } else animateEdges(from, i, stepDur());
+    const r = run.rounds[cur];
+
+    const active = new Uint8Array(G.writers.length);
+    for (let e = 0; e < G.NE; e++) if (last[e] >= cur) {
+      active[G.ew[e]] = 1;
+      if (G.mlpWriter.has(G.er[e])) active[G.mlpWriter.get(G.er[e])] = 1;
+    }
+    nodeSel.classed("idle", d => !active[d.i]).classed("hl sel", false);
+    svg.classed("focus", false);
+    buildHits();
+
+    tween($("count"), prevRound === null ? r.n : run.rounds[prevRound].n, r.n);
+    $("count-unit").textContent = r.n === 1 ? "connection" : "connections";
+    const share = r.n / run.rounds[0].n;
+    $("count-of").textContent = cur === 0 ? "all of them on" : `left of ${fmt(run.rounds[0].n)} (${(100 * share).toFixed(share < 0.01 ? 2 : share < 0.1 ? 1 : 0)}%)`;
+    const accBad = r.acc < run.full_val - 0.05;
+    $("acc").innerHTML = pct(r.acc) + (accBad ? ' <span class="st" aria-label="below the bar">▼</span>' : "");
+    $("m-acc").classList.toggle("warn", accBad);
+    const capPct = (r.cap - 1) * 100, capBad = r.cap > run.cap_gate;
+    $("cap").innerHTML = (r.cap >= 1.5 ? r.cap.toFixed(1) + "× higher" : (capPct >= 0 ? "+" : "−") + Math.abs(capPct).toFixed(1) + "%") +
+      (capBad ? ' <span class="st" aria-label="over the limit">▲</span>' : "");
+    $("m-cap").classList.toggle("warn", capBad);
+
+    const st = $("state");
+    st.classList.toggle("final", cur === stopIdx);
+    st.classList.toggle("over", cur > stopIdx);
+    $("state-t").textContent = cur === 0 ? "Original model" : cur === stopIdx ? `Final circuit · round ${cur}` :
+      cur > stopIdx ? `Past the stop · round ${cur}` : `Round ${cur} of ${stopIdx}`;
+
+    const text = captionFor(cur);
+    clearTimeout(capTimer);
+    if (instant || reduced) { capEl.innerHTML = text; capEl.classList.remove("fade"); }
+    else { capEl.classList.add("fade"); capTimer = setTimeout(() => { capEl.innerHTML = text; capEl.classList.remove("fade"); }, 170); }
+
+    input.value = cur;
+    input.setAttribute("aria-valuetext", `Round ${cur}: ${r.n} connections`);
+    $("thumb").style.left = `calc(8px + (100% - 16px) * ${frac(cur)})`;
+    $("fill").style.width = `calc(100% * ${frac(cur)})`;
+    $("skip").textContent = cur === stopIdx ? "Replay" : "Final circuit";
+
+    updateKnee();
+    if (pinned) {
+      if (pinned.type === "edge" && on(pinned.e, cur)) inspectEdge(pinned.e, true);
+      else if (pinned.type === "node" && nodeEdges(pinned.d.i).length) inspectNode(pinned.d, true);
+      else unpin();
+    }
+    prevRound = cur;
+    syncURL();
+  }
+  function syncURL() {
+    try {
+      const u = new URL(location.href);
+      u.searchParams.set("cell", D.id); u.searchParams.set("seed", seed); u.searchParams.set("r", cur);
+      if (exIdx) u.searchParams.set("ex", exIdx); else u.searchParams.delete("ex");
+      history.replaceState(null, "", u);
+    } catch (e) {}
+  }
+  function tween(el, a, b) {
+    if (reduced || a === b) { el._t = 0; el.textContent = fmt(b); return; }
+    const f = d3.interpolateNumber(a, b), t0 = performance.now(), dur = 650;
+    el._t = t0;
+    const step = now => {
+      if (el._t !== t0) return;
+      const k = Math.min(1, (now - t0) / dur);
+      el.textContent = fmt(Math.round(f(d3.easeCubicOut(k))));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // ---------- captions ----------
+  function captionFor(i) {
+    const r = run.rounds[i], r0 = run.rounds[0], fe = run.frozen_eapig.edges, end = run.rounds[stopIdx].n;
+    const nRoles = Object.keys(D.roles).length;
+    if (i === 0) {
+      return `${esc(D.model_label)} has <b>${fmt(r0.n)}</b> possible connections between its ${fmt(D.n_layers * D.n_heads)} attention heads, ${D.n_layers} MLPs, the input and the output.` +
+        (nRoles ? ` The <b>${nRoles}</b> colored heads are the ones Wang et al. (2023) identified for this task.` : " Watch which ones the behavior keeps.");
+    }
+    if (i < stopIdx) {
+      const prev = run.rounds[i - 1].n, cut = Math.round(100 * (1 - r.n / prev));
+      if (end < fe && r.n <= fe && prev > fe)
+        return `<b>${conn(r.n)}</b>. About here a search on the <b>frozen</b> model stops: it needs ${fmt(fe)} to stay above the accuracy bar. Condensation keeps going because the weights can adapt.`;
+      if (end < fe && r.n < fe)
+        return `Cut ${cut}% more and retrained. <b>${conn(r.n)}</b>, accuracy ${pct(r.acc)}. A search on the frozen model needed ${fmt(fe)} to stay above the accuracy bar.`;
+      return `Cut the weakest ${cut}% of connections, then retrained a small adapter so the model routes the behavior through what is left. Accuracy is <b>${pct(r.acc)}</b>.`;
+    }
+    if (i === stopIdx) {
+      let s = `Final circuit: <b>${conn(r.n)}</b>, ${pct(run.test_acc)} correct on held-out test prompts (full model ${pct(run.full_test)}).`;
+      if (r.n < fe) s += ` A search on the frozen model needed <b>${fmt(fe)}</b> for the same bar, ${ratioTxt(fe / r.n)} more.`;
+      else if (r.n === fe) s += ` A search on the frozen model found a circuit of the same size.`;
+      else s += ` Here condensation does not win: the frozen-model search found a smaller circuit (<b>${fmt(fe)}</b>).`;
+      if (run.legibility) s += ` <b>${run.legibility.named} of its ${run.legibility.heads} heads</b> are ones Wang et al. documented.`;
+      s += run.necessity ? " Thicker lines matter more; click one to test it." : " Click a head to see its connections.";
+      return s;
+    }
+    if (r.acc < run.full_val - 0.05)
+      return `Past the stop. Cutting to ${conn(r.n)} drops accuracy to <b>${pct(r.acc)}</b>. The circuit was already at its limit, so the controller stopped at ${fmt(end)}.`;
+    if (r.cap > run.cap_gate)
+      return `Past the stop. The behavior still works (${pct(r.acc)}), but perplexity on general text rises <b>${r.cap >= 1.5 ? r.cap.toFixed(1) + "×" : ((r.cap - 1) * 100).toFixed(1) + "%"}</b>, over the 5% limit. The controller protects general ability, so it stopped at ${fmt(end)}.`;
+    return `Past the stop. Accuracy is ${pct(r.acc)}, but the controller's statistical check could not confirm it stays within tolerance, so it stopped at ${fmt(end)}. These rounds only chart what happens next.`;
+  }
+
+  // ---------- playback ----------
+  const playBtn = $("play"), playIc = $("play-ic");
+  const stepGap = () => Math.max(450, Math.min(1400, 9000 / Math.max(1, stopIdx)));
+  const stepDur = () => Math.min(720, stepGap() * 0.8);
+  function setIcon(playing) {
+    playIc.innerHTML = playing ? '<path d="M3 2h3v10H3zM8 2h3v10H8z" fill="currentColor"/>' : '<path d="M3 1.8v10.4L12 7z" fill="currentColor"/>';
+    playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
+  }
+  function pause() { if (timer) { clearInterval(timer); timer = null; } setIcon(false); }
+  function play() {
+    if (!run) return;
+    unpin();
+    if (cur >= stopIdx) setRound(0, true);
+    setIcon(true);
+    const tick = () => {
+      if (cur >= stopIdx) { pause(); return; }
+      setRound(cur + 1);
+      if (cur >= stopIdx) pause();
+    };
+    setTimeout(tick, 250);
+    timer = setInterval(tick, stepGap());
+  }
+  playBtn.addEventListener("click", () => (timer ? pause() : play()));
+  $("skip").addEventListener("click", () => { pause(); if (cur === stopIdx) play(); else setRound(stopIdx); });
+
+  function setupAutoplay(skip) {
+    let done = skip || reduced;
+    const fig = $("graph-wrap");
+    if (!done && "IntersectionObserver" in window) {
+      const io = new IntersectionObserver(es => {
+        if (es.some(en => en.isIntersecting) && !done) { done = true; io.disconnect(); if (cur === 0 && !timer) setTimeout(play, 450); }
+      }, { threshold: 0.35 });
+      io.observe(fig);
+    }
+    $("see-run").addEventListener("click", () => { done = true; setTimeout(() => { if (!timer) play(); }, 700); });
+  }
+
+  function cycleModel(dir) {
+    const ids = INDEX.models.map(m => m.id), i = ids.indexOf(curModel);
+    loadCell(curTask, ids[(i + dir + ids.length) % ids.length], { autoplay: true });
+  }
+  document.addEventListener("keydown", ev => {
+    if (!run) return;
+    if (ev.key === "Escape") { unpin(); return; }
+    if (ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    const tag = ev.target.tagName;
+    if (ev.target === input) { if (ev.key === " ") { ev.preventDefault(); timer ? pause() : play(); } return; }
+    if ((tag === "BUTTON" || tag === "A") && (ev.key === " " || ev.key === "Enter")) return;
+    if (tag === "TEXTAREA" || tag === "INPUT" || tag === "SELECT") return;
+    if (ev.key === "ArrowRight") { ev.preventDefault(); pause(); setRound(cur + 1); }
+    else if (ev.key === "ArrowLeft") { ev.preventDefault(); pause(); setRound(cur - 1); }
+    else if (ev.key === " ") { ev.preventDefault(); timer ? pause() : play(); }
+    else if (ev.key === "]") cycleModel(1);
+    else if (ev.key === "[") cycleModel(-1);
+  });
+})();
+</script>
+</body>
+</html>
