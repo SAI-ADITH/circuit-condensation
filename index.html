@@ -192,9 +192,10 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .cell-sum b { color: var(--ink); font-weight: 600; }
 
 /* Demo layout */
-.demo { display: grid; grid-template-columns: minmax(0, 2.1fr) minmax(340px, 1fr); gap: 16px; align-items: start; }
-.demo .panel { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 74px); }
-@media (max-width: 980px) { .demo { grid-template-columns: minmax(0, 1fr); } .demo .panel { position: static; } }
+.demo { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
+.demo .panel { grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr) minmax(0, 1.2fr); align-items: start; gap: 28px; }
+.pv { display: grid; gap: 16px; }
+@media (max-width: 980px) { .demo .panel { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
 .fig { padding: 22px 22px 18px; position: relative; margin: 0; }
 .fig-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px 16px; align-items: start; }
 .fig h3 { font: 600 20px/1.3 var(--display); letter-spacing: -.015em; margin: 0; }
@@ -525,6 +526,7 @@ footer a:hover { color: var(--ink); }
         </figure>
 
         <aside class="card panel" aria-live="polite">
+          <div class="pv">
           <span class="state" id="state"><span class="dot"></span><span id="state-t">Original model</span></span>
           <div class="count">
             <span class="big" id="count">–</span>
@@ -533,6 +535,7 @@ footer a:hover { color: var(--ink); }
           <div class="metrics">
             <div class="metric" id="m-acc"><div class="l">Task accuracy</div><div class="v" id="acc">–</div><div class="n">validation prompts</div></div>
             <div class="metric" id="m-cap" title="Change in perplexity on a mixed general-text sample, compared with the original model. Lower is better."><div class="l">General text</div><div class="v" id="cap">–</div><div class="n">perplexity change, limit +5%</div></div>
+          </div>
           </div>
           <p class="caption" id="caption">Loading the circuit…</p>
           <div>
@@ -783,16 +786,17 @@ footer a:hover { color: var(--ink); }
     if (NE !== D.n_edges || !D.check.every(([i, w, r]) => writers[ew[i]] === w && readers[er[i]] === r)) throw new Error("edge order mismatch");
 
     // geometry in viewBox units (640 wide); the height follows the layer count
-    const VBW = 640, top = 92, portX = 54, area0 = 96, areaW = 440;
+    const wide = wrap.clientWidth > 900;
+    const VBW = wide ? 1160 : 640, top = 92, portX = 54, area0 = 96, areaW = VBW - 200;
     const dy = Math.min(40.5, 470 / Math.max(1, NL - 1));
     const VBH = Math.round(top + (NL - 1) * dy + 62);
-    const dx = NH > 1 ? Math.min(60, areaW / (NH - 1)) : 0;
+    const dx = NH > 1 ? Math.min(wide ? 110 : 60, areaW / (NH - 1)) : 0;
     const x0 = area0 + (areaW - dx * (NH - 1)) / 2;
     const mlpX = area0 + areaW + 48, midX = area0 + areaW / 2;
     const pillY = 34, embedY = VBH - 24;
     const rowY = l => top + (NL - 1 - l) * dy;
     const headX = h => x0 + h * dx;
-    const r = Math.max(3.6, Math.min(5.5, dx * 0.22, dy * 0.32));
+    const r = Math.max(3.6, Math.min(wide ? 6 : 5.5, dx * 0.22, dy * 0.32));
     const wx = new Float32Array(writers.length), wy = new Float32Array(writers.length);
     writers.forEach((w, i) => {
       if (w === "embed") { wx[i] = midX; wy[i] = embedY - 11; return; }
@@ -829,7 +833,7 @@ footer a:hover { color: var(--ink); }
     const mlpReader = new Map(), mlpWriter = new Map();
     readers.forEach((n, i) => { if (n.startsWith("mlp")) mlpReader.set(writers.indexOf(n), i); });
     readers.forEach((n, i) => { if (n.startsWith("mlp")) mlpWriter.set(i, writers.indexOf(n)); });
-    return { NL, NH, NE, writers, readers, ew, er, C, VBW, VBH, portX, mlpX, midX, pillY, embedY, rowY, headX, r, dy, byWriter, byReader, mlpReader, mlpWriter };
+    return { wide, NL, NH, NE, writers, readers, ew, er, C, VBW, VBH, portX, mlpX, midX, pillY, embedY, rowY, headX, r, dy, byWriter, byReader, mlpReader, mlpWriter };
   }
 
   function prepSeed() {
@@ -971,7 +975,11 @@ footer a:hover { color: var(--ink); }
     scale = (w / G.VBW) * dpr;
     drawRest();
   }
-  new ResizeObserver(() => resizeCanvas()).observe(wrap);
+  new ResizeObserver(() => {
+    if (G && D && (wrap.clientWidth > 900) !== G.wide) {  // switch between the wide and the narrow drawing
+      unpin(); G = buildGraph(D); drawStatic(); renderExample(); restGroups = null; prevRound = null; setRound(cur, true);
+    } else resizeCanvas();
+  }).observe(wrap);
   themeListeners.push(() => drawRest());
 
   const edgeOpacity = n => Math.max(0.012, Math.min(0.85, 0.8 * Math.pow(60 / n, 0.75)));
