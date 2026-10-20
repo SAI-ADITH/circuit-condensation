@@ -1357,8 +1357,8 @@ footer a:hover { color: var(--ink); }
 
   // ---------- playback ----------
   const playBtn = $("play"), playIc = $("play-ic");
-  const stepGap = () => Math.max(450, Math.min(1400, 9000 / Math.max(1, stopIdx)));
-  const stepDur = () => Math.min(720, stepGap() * 0.8);
+  const stepGap = () => Math.max(1100, Math.min(2000, 22000 / Math.max(1, stopIdx)));
+  const stepDur = () => Math.min(1100, stepGap() * 0.7);
   function setIcon(playing) {
     playIc.innerHTML = playing ? '<path d="M3 2h3v10H3zM8 2h3v10H8z" fill="currentColor"/>' : '<path d="M3 1.8v10.4L12 7z" fill="currentColor"/>';
     playBtn.setAttribute("aria-label", playing ? "Pause" : "Play");
