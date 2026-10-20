@@ -405,6 +405,14 @@ footer nav { display: flex; gap: 18px; }
 footer a { text-decoration: none; color: var(--ink-2); }
 footer a:hover { color: var(--ink); }
 
+
+/* centered section heads and pickers */
+.sec-head { margin-inline: auto; text-align: center; justify-items: center; }
+.sec-head p:not(.label) { text-wrap: balance; }
+.pick-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 12px; }
+.pick-row > span { min-width: 0; }
+.chips { justify-content: center; }
+.box h2, .box .label { text-align: left; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0s !important; transition-delay: 0s !important; animation: none !important; }
   html { scroll-behavior: auto; }
