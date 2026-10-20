@@ -2,7 +2,7 @@
 
 **Post-training that concentrates a behavior's causal circuit.**
 
-Paper: [arXiv:2608.27254](https://arxiv.org/abs/2608.27254)
+Paper: [arXiv:2608.27254](https://arxiv.org/abs/2608.27254) · Interactive demo: [sai-adith.github.io/circuit-condensation](https://sai-adith.github.io/circuit-condensation/)
 
 Circuit discovery usually searches a frozen model for the smallest subgraph that carries a behavior. Circuit Condensation instead post-trains the model so that a much smaller subgraph suffices. The circuits it returns are small enough to verify exhaustively.
 
